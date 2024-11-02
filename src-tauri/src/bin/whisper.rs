@@ -10,6 +10,7 @@ use std::path::Path;
 use tokio::fs::{self, File};
 use tokio::io::AsyncReadExt;
 
+// define the transcription struct with only text in my interest
 #[derive(Debug, Deserialize)]
 struct TranscriptionResponse {
     text: String,
@@ -54,6 +55,9 @@ struct ChatResponse {
     choices: Vec<Choice>,
 }
 
+// System Prompt: summarize with mindmap?
+//
+//
 // #[derive(Debug, Deserialize)]
 // struct Segment {
 //     text: String,
