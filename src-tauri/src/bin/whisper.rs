@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use dotenv::dotenv;
 use futures_util::StreamExt;
@@ -53,6 +55,18 @@ struct Choice {
 struct ChatResponse {
     // id: String,
     choices: Vec<Choice>,
+}
+
+// after process the file remove the file
+async fn remove_files_from_directory(dir_path: &Path) -> Result<()> {
+    let mut dir = fs::read_dir(dir_path).await?;
+    while let Some(entry) = dir.next_entry().await? {
+        let _path = entry.path();
+        if _path.is_file() {
+            fs::remove_file(_path).await?;
+        }
+    }
+    Ok(())
 }
 
 // System Prompt: summarize with mindmap?
