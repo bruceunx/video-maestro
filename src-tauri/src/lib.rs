@@ -56,7 +56,7 @@ async fn run_ffmpeg(app: tauri::AppHandle) -> String {
                     .await
                     .expect("cannot remove the temp file");
 
-                match whisper::trancript_summary(&split_fold).await {
+                match whisper::trancript_summary(app, &split_fold).await {
                     Ok(_) => "success: summary finished".to_string(),
                     Err(_) => "error: summary failed".to_string(),
                 }
