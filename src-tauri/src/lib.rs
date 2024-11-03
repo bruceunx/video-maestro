@@ -1,6 +1,7 @@
-use std::fs;
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
+use tokio::fs;
+mod whisper;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -18,8 +19,14 @@ async fn run_ffmpeg(app: tauri::AppHandle) -> String {
 
     let split_fold = cache_dir.join("newscenter").join("temp");
     if !split_fold.is_dir() {
-        fs::create_dir_all(&split_fold).expect("cannot create a temp fold for split wav");
+        fs::create_dir_all(&split_fold)
+            .await
+            .expect("cannot create a temp fold for split wav");
     }
+
+    whisper::remove_files_from_directory(&split_fold)
+        .await
+        .expect("remove temp fold failed");
 
     let split_path = format!("{}/temp_%02d.wav", split_fold.to_str().unwrap());
 
@@ -45,7 +52,14 @@ async fn run_ffmpeg(app: tauri::AppHandle) -> String {
     match command.output().await {
         Ok(output) => {
             if output.status.success() {
-                "success: ffmpeg split".to_string()
+                fs::remove_file(temp_path)
+                    .await
+                    .expect("cannot remove the temp file");
+
+                match whisper::trancript_summary(&split_fold).await {
+                    Ok(_) => "success: summary finished".to_string(),
+                    Err(_) => "error: summary failed".to_string(),
+                }
             } else {
                 "error: ffmpeg error".to_string()
             }
