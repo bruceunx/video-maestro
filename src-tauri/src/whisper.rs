@@ -211,6 +211,7 @@ pub async fn trancript_summary(app: tauri::AppHandle, audio_path: &Path) -> Resu
 
         chat_stream(&app, &api_key, &text, &llm_model_name, &llm_api_url).await?;
     }
+    remove_files_from_directory(audio_path).await?;
 
     Ok(())
 }
