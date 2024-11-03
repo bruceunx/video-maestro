@@ -134,8 +134,7 @@ async fn chat_stream(
             if let Ok(response) = serde_json::from_str::<ChatResponse>(line) {
                 for choice in response.choices {
                     if let Some(content) = choice.delta.content {
-                        print!("{}", content);
-                        let _ = app.emit("stream", content);
+                        app.emit("stream", content)?;
                         std::io::stdout().flush().unwrap();
                     }
                 }
@@ -197,10 +196,10 @@ pub async fn trancript_summary(app: tauri::AppHandle, audio_path: &Path) -> Resu
     let llm_model_name = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
 
     let mut dir = fs::read_dir(audio_path).await?;
+    app.emit("stream", "[start]")?;
     while let Some(entry) = dir.next_entry().await? {
         let audio_path = entry.path();
         let audio_path_str = audio_path.to_str().unwrap();
-        println!("current file {}", &audio_path_str);
         let text = match transcribe_audio(&api_key, audio_path_str, &model_name, &api_url).await {
             Ok(response) => response.text,
             Err(e) => {
@@ -211,6 +210,7 @@ pub async fn trancript_summary(app: tauri::AppHandle, audio_path: &Path) -> Resu
 
         chat_stream(&app, &api_key, &text, &llm_model_name, &llm_api_url).await?;
     }
+    app.emit("stream", "[end]")?;
     remove_files_from_directory(audio_path).await?;
 
     Ok(())
