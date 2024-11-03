@@ -8,7 +8,7 @@ endif
 all: download split
 
 download:
-	./src-tauri/binaries/yt-aarch64-apple-darwin --proxy socks5://127.0.0.1:1095 --force-overwrites  -x -f "worstaudio[ext=webm]" --extract-audio --audio-format wav --postprocessor-args "-ar 16000 -ac 1" -o "cache/temp.wav" $(url)
+	./src-tauri/binaries/yt-aarch64-apple-darwin --proxy socks5://127.0.0.1:1095 --force-overwrites  -x -f "worstaudio[ext=webm]" --extract-audio --audio-format wav --postprocessor-args "-ar 16000 -ac 1" -o /Users/bruce/Library/Caches/newscenter1/temp.wav $(url)
 	 
 split:
 	ffmpeg -y -i cache/temp.wav -f segment -segment_time 00:10:00 -reset_timestamps 1 -c copy "cache/temp_%03d.wav"  

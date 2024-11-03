@@ -4,11 +4,11 @@ use anyhow::Result;
 use dotenv::dotenv;
 use futures_util::StreamExt;
 use reqwest::multipart::{Form, Part};
-use reqwest::Client;
-use reqwest::StatusCode;
+use reqwest::{Client, Proxy, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::path::Path;
+use tauri::Emitter;
 use tokio::fs::{self, File};
 use tokio::io::AsyncReadExt;
 
@@ -58,7 +58,7 @@ struct ChatResponse {
 }
 
 // after process the file remove the file
-async fn remove_files_from_directory(dir_path: &Path) -> Result<()> {
+pub async fn remove_files_from_directory(dir_path: &Path) -> Result<()> {
     let mut dir = fs::read_dir(dir_path).await?;
     while let Some(entry) = dir.next_entry().await? {
         let _path = entry.path();
@@ -79,12 +79,17 @@ async fn remove_files_from_directory(dir_path: &Path) -> Result<()> {
 //     end: f64,
 // }
 async fn chat_stream(
+    app: &tauri::AppHandle,
     api_key: &str,
     user_message: &str,
     llm_model: &str,
     api_url: &str,
+    proxy_url: &str,
 ) -> Result<()> {
-    let client = Client::new();
+    println!("run chat stream");
+
+    let https_proxy = Proxy::https(proxy_url)?;
+    let client = Client::builder().proxy(https_proxy).build()?;
     let request = ChatRequest {
         messages: vec![
             Message {
@@ -122,6 +127,7 @@ async fn chat_stream(
                 for choice in response.choices {
                     if let Some(content) = choice.delta.content {
                         print!("{}", content);
+                        let _ = app.emit("stream", content);
                         std::io::stdout().flush().unwrap();
                     }
                 }
@@ -137,8 +143,11 @@ async fn transcribe_audio(
     audio_path: &str,
     audio_model: &str,
     api_url: &str,
+    proxy_url: &str,
 ) -> Result<TranscriptionResponse> {
-    let client = Client::new();
+    let https_proxy = Proxy::https(proxy_url)?;
+
+    let client = Client::builder().proxy(https_proxy).build()?;
 
     let path = Path::new(audio_path);
     let mut file = File::open(path).await?;
@@ -168,13 +177,13 @@ async fn transcribe_audio(
         }
         _ => {
             let error_text = response.text().await?;
+            println!("error from whisper {}", error_text);
             anyhow::bail!("API error {} - {}", status, error_text);
         }
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+pub async fn trancript_summary(app: tauri::AppHandle, audio_path: &Path) -> Result<()> {
     dotenv().ok();
     let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
     let api_url = std::env::var("GROQ_AUDIO_URL").expect("AUDIO URL is missing!");
@@ -182,23 +191,64 @@ async fn main() -> Result<()> {
 
     let llm_api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
     let llm_model_name = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
-
-    let audio_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .join("cache");
+    let proxy_url = std::env::var("PROXY_URL").expect("proxy needed for groq in China");
 
     let mut dir = fs::read_dir(audio_path).await?;
     while let Some(entry) = dir.next_entry().await? {
         let audio_path = entry.path();
         let audio_path_str = audio_path.to_str().unwrap();
-        let text = match transcribe_audio(&api_key, audio_path_str, &model_name, &api_url).await {
-            Ok(response) => response.text,
-            Err(e) => anyhow::bail!("Error from transcribe_audio {}", e),
-        };
+        println!("current file {}", &audio_path_str);
+        let text =
+            match transcribe_audio(&api_key, audio_path_str, &model_name, &api_url, &proxy_url)
+                .await
+            {
+                Ok(response) => response.text,
+                Err(e) => {
+                    println!("error from transcribe_audio {}", e);
+                    anyhow::bail!("Error from transcribe_audio {}", e)
+                }
+            };
 
-        chat_stream(&api_key, &text, &llm_model_name, &llm_api_url).await?;
+        chat_stream(
+            &app,
+            &api_key,
+            &text,
+            &llm_model_name,
+            &llm_api_url,
+            &proxy_url,
+        )
+        .await?;
     }
 
     Ok(())
 }
+
+// #[tokio::main]
+// async fn main() -> Result<()> {
+//     dotenv().ok();
+//     let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
+//     let api_url = std::env::var("GROQ_AUDIO_URL").expect("AUDIO URL is missing!");
+//     let model_name = std::env::var("AUDIO_MODEL").expect("AUDIO MODEL is missing!");
+//
+//     let llm_api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
+//     let llm_model_name = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
+//
+//     let audio_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+//         .parent()
+//         .unwrap()
+//         .join("cache");
+//
+//     let mut dir = fs::read_dir(audio_path).await?;
+//     while let Some(entry) = dir.next_entry().await? {
+//         let audio_path = entry.path();
+//         let audio_path_str = audio_path.to_str().unwrap();
+//         let text = match transcribe_audio(&api_key, audio_path_str, &model_name, &api_url).await {
+//             Ok(response) => response.text,
+//             Err(e) => anyhow::bail!("Error from transcribe_audio {}", e),
+//         };
+//
+//         chat_stream(&api_key, &text, &llm_model_name, &llm_api_url).await?;
+//     }
+//
+//     Ok(())
+// }
