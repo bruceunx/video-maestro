@@ -194,7 +194,7 @@ async fn main() -> Result<()> {
         let audio_path_str = audio_path.to_str().unwrap();
         let text = match transcribe_audio(&api_key, audio_path_str, &model_name, &api_url).await {
             Ok(response) => response.text,
-            Err(e) => panic!("Error {}", e),
+            Err(e) => anyhow::bail!("Error from transcribe_audio {}", e),
         };
 
         chat_stream(&api_key, &text, &llm_model_name, &llm_api_url).await?;
