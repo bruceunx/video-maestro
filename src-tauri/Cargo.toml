@@ -30,6 +30,6 @@ dotenv = "0.15"
 anyhow = "1.0"
 futures-util = "0.3"
 
-[[bin]]
-name = "whisper-api"
-path = "src/bin/whisper.rs"
+# [[bin]]
+# name = "whisper-api"
+# path = "src/bin/whisper.rs"

@@ -9,6 +9,10 @@
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
+
+  "bundle": {
+    "externalBin": ["binaries/ffmpeg", "binaries/yt"]
+  },
   "app": {
     "windows": [
       {
