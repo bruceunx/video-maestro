@@ -1,3 +1,4 @@
+use std::fs;
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
 
@@ -6,51 +7,92 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
-#[tauri::command(rename_all = "snake_case")]
-async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
-    println!("url: {}", url);
-
+async fn run_ffmpeg(app: tauri::AppHandle) -> String {
+    println!("run ffmpeg");
     let cache_dir = app.path().cache_dir().unwrap();
-    println!("cache dir: {}", cache_dir.to_str().unwrap());
-
     let temp_path = cache_dir.join("newscenter").join("temp.wav");
+    if !temp_path.is_file() {
+        return "Error: temp wav not exit".to_string();
+    }
     let temp_path_str = temp_path.to_str().unwrap();
 
-    println!("temp path_str: {}", &temp_path_str);
-    let command = app.shell().sidecar("yt").unwrap().args([
-        "--proxy",
-        "socks5://127.0.0.1:1095",
-        "--force-overwrites",
-        "-x",
-        "-f",
-        "\"worstaudio[ext=webm]\"",
-        "--extract-audio",
-        "--audio-format",
-        "wav",
-        "--postprocessor-args",
-        "\"-ar 16000 -ac 1\"",
-        "-o",
-        temp_path_str,
-        url,
-    ]);
+    let split_fold = cache_dir.join("newscenter").join("temp");
+    if !split_fold.is_dir() {
+        fs::create_dir_all(&split_fold).expect("cannot create a temp fold for split wav");
+    }
 
-    println!("run here");
+    let split_path = format!("{}/temp_%02d.wav", split_fold.to_str().unwrap());
+
+    let command = app
+        .shell()
+        .sidecar("ffmpeg")
+        .expect("ffmpeg command found")
+        .args([
+            "-y",
+            "-i",
+            temp_path_str,
+            "-f",
+            "segment",
+            "-segment_time",
+            "00:10:00",
+            "-reset_timestamps",
+            "1",
+            "-c",
+            "copy",
+            &split_path,
+        ]);
 
     match command.output().await {
         Ok(output) => {
             if output.status.success() {
-                println!("yt successful");
-                Ok("yt success".to_string())
+                "success: ffmpeg split".to_string()
             } else {
-                let err_message = String::from_utf8_lossy(&output.stderr).to_string();
-                println!("error from command output {}", &err_message);
-                Err(err_message.to_string())
+                "error: ffmpeg error".to_string()
             }
         }
-        Err(e) => {
-            println!("error from run command {}", e);
-            Err(e.to_string())
+        Err(e) => format!("error from run command, {}", e),
+    }
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
+    println!("run yt");
+    let cache_dir = app.path().cache_dir().unwrap();
+
+    let temp_path = cache_dir.join("newscenter").join("temp.wav");
+    let temp_path_str = temp_path.to_str().unwrap();
+
+    let command = app
+        .shell()
+        .sidecar("ytdown")
+        .expect("should find the ytdown!")
+        .args([
+            "--proxy",
+            "socks5://127.0.0.1:1095",
+            "--force-overwrites",
+            "-x",
+            "-f",
+            "worstaudio[ext=webm]",
+            "--extract-audio",
+            "--audio-format",
+            "wav",
+            "--postprocessor-args",
+            "-ar 16000 -ac 1",
+            "-o",
+            temp_path_str,
+            url,
+        ]);
+
+    match command.output().await {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(run_ffmpeg(app).await)
+            } else {
+                let err_message = String::from_utf8_lossy(&output.stderr).to_string();
+                Err(format!("error: {}", err_message))
+            }
         }
+        Err(e) => Err(format!("error: {}", e)),
     }
 }
 
