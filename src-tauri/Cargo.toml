@@ -2,8 +2,9 @@
 name = "newscenter"
 version = "0.1.0"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["bruce <bruceunx@outlook.com>"]
 edition = "2021"
+# default-run = "test"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -30,3 +31,10 @@ dotenv = "0.15"
 anyhow = "1.0"
 futures-util = "0.3"
 
+[[bin]]
+name = "newscenter"
+path = "src/main.rs"
+
+[[bin]]
+name = "test"
+path = "src/bin/test.rs"
