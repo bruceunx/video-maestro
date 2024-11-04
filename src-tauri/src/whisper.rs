@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
 use anyhow::Result;
-use dotenv::dotenv;
 use futures_util::StreamExt;
 use reqwest::multipart::{Form, Part};
 use reqwest::{Client, Proxy, StatusCode};
@@ -70,7 +69,6 @@ pub async fn remove_files_from_directory(dir_path: &Path) -> Result<()> {
 }
 
 async fn create_client() -> Result<Client> {
-    dotenv().ok();
     let client = match std::env::var("PROXY_URL") {
         Ok(proxy_url) => Client::builder().proxy(Proxy::https(proxy_url)?).build()?,
         Err(_) => Client::builder().build()?,
@@ -187,7 +185,6 @@ async fn transcribe_audio(
 }
 
 pub async fn trancript_summary(app: tauri::AppHandle, audio_path: &Path) -> Result<()> {
-    dotenv().ok();
     let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
     let api_url = std::env::var("GROQ_AUDIO_URL").expect("AUDIO URL is missing!");
     let model_name = std::env::var("AUDIO_MODEL").expect("AUDIO MODEL is missing!");
