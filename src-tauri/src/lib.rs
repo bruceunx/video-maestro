@@ -77,26 +77,32 @@ async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
     let temp_path = cache_dir.join("newscenter").join("temp.wav");
     let temp_path_str = temp_path.to_str().unwrap();
 
+    let mut args = Vec::new();
+    if let Ok(proxy_url) = std::env::var("PROXY_URL") {
+        args.push("--proxy".to_string());
+        args.push(proxy_url);
+    }
+    let standard_args = vec![
+        "--force-overwrites",
+        "-x",
+        "-f",
+        "worstaudio[ext=webm]",
+        "--extract-audio",
+        "--audio-format",
+        "wav",
+        "--postprocessor-args",
+        "-ar 16000 -ac 1",
+        "-o",
+    ];
+    args.extend(standard_args.into_iter().map(String::from));
+    args.push(temp_path_str.to_string());
+    args.push(url.to_string());
+
     let command = app
         .shell()
         .sidecar("ytdown")
         .expect("should find the ytdown!")
-        .args([
-            "--proxy",
-            "socks5://127.0.0.1:1095",
-            "--force-overwrites",
-            "-x",
-            "-f",
-            "worstaudio[ext=webm]",
-            "--extract-audio",
-            "--audio-format",
-            "wav",
-            "--postprocessor-args",
-            "-ar 16000 -ac 1",
-            "-o",
-            temp_path_str,
-            url,
-        ]);
+        .args(args);
 
     match command.output().await {
         Ok(output) => {
