@@ -23,3 +23,6 @@ summary:
 	$(eval PROMPT += $(shell cat cache/temp.wav.txt))
 	echo $(PROMPT)
 # llama-cli.exe -m models/new3/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf --repeat-penalty 1.1 --ctx-size 8196 -ngl 99 --simple-io --in-prefix "<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n" --in-suffix "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n" -p "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a helpful, smart, kind, and efficient AI assistant." -e --multiline-input --no-display-prompt -f cache/temp.wav.txt
+#
+test:
+	./src-tauri/binaries/ytdown-aarch64-apple-darwin --proxy socks5://127.0.0.1:1095 --skip-download --write-subs --sub-lang zh -o 'cache/test.%(ext)s' $(url)
