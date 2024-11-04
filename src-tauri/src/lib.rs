@@ -1,3 +1,4 @@
+mod webvtt;
 use dotenv::dotenv;
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
@@ -122,7 +123,7 @@ pub fn run() {
     dotenv().ok();
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![greet, run_yt])
+        .invoke_handler(tauri::generate_handler![greet, run_yt, webvtt::run_yt_vtt])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

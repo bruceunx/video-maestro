@@ -85,7 +85,7 @@ async fn create_client() -> Result<Client> {
 //     start: f64,
 //     end: f64,
 // }
-async fn chat_stream(
+pub(crate) async fn chat_stream(
     app: &tauri::AppHandle,
     api_key: &str,
     user_message: &str,
