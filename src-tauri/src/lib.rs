@@ -73,6 +73,11 @@ async fn run_ffmpeg(app: tauri::AppHandle) -> String {
 #[tauri::command(rename_all = "snake_case")]
 async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
     println!("run yt");
+
+    if let Some(lang) = webvtt::get_sub_lang(&app, url).await {
+        return webvtt::run_yt_vtt(app, url, &lang).await;
+    }
+
     let cache_dir = app.path().cache_dir().unwrap();
 
     let temp_path = cache_dir.join("newscenter").join("temp.wav");
@@ -123,7 +128,7 @@ pub fn run() {
     dotenv().ok();
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![greet, run_yt, webvtt::run_yt_vtt])
+        .invoke_handler(tauri::generate_handler![greet, run_yt, webvtt::run_yt_vtt,])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

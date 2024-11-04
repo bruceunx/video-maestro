@@ -32,7 +32,8 @@ function App() {
   const [lang, setLang] = React.useState("en");
 
   async function greet() {
-    setGreetMsg(await invoke("run_yt_vtt", { url, lang }));
+    // setGreetMsg(await invoke("run_yt_vtt", { url, lang }));
+    setGreetMsg(await invoke("run_yt", { url }));
   }
 
   return (

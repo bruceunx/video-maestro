@@ -2,7 +2,7 @@ use crate::whisper::chat_stream;
 use anyhow::Result;
 use std::path::Path;
 use std::time::Duration;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_plugin_shell::ShellExt;
 use tokio::fs::{self, File};
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -62,9 +62,11 @@ pub async fn handle_summarize(app: tauri::AppHandle, vtt_file: &Path) -> Result<
     let llm_api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
     let llm_model_name = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
     let chunks = extract_vtt_chunks(vtt_file).await?;
+    app.emit("stream", "[start]")?;
     for chunk in chunks {
         chat_stream(&app, &api_key, &chunk, &llm_model_name, &llm_api_url).await?;
     }
+    app.emit("stream", "[end]")?;
 
     Ok(())
 }
@@ -113,5 +115,50 @@ pub async fn run_yt_vtt(app: tauri::AppHandle, url: &str, lang: &str) -> Result<
             }
         }
         Err(e) => Err(format!("error: {}", e)),
+    }
+}
+
+pub async fn get_sub_lang(app: &tauri::AppHandle, url: &str) -> Option<String> {
+    println!("get_sub_lang");
+    let mut args = Vec::new();
+    if let Ok(proxy_url) = std::env::var("PROXY_URL") {
+        args.push("--proxy".to_string());
+        args.push(proxy_url);
+    }
+    args.push("--list-subs".to_string());
+    args.push(url.to_string());
+    let command = app
+        .shell()
+        .sidecar("ytdown")
+        .expect("should find the ytdown!")
+        .args(args);
+
+    let mut lang_attention = false;
+
+    match command.output().await {
+        Ok(output) => {
+            if output.status.success() {
+                let output_str = std::str::from_utf8(&output.stdout).unwrap();
+                for line in output_str.lines() {
+                    if line.is_empty() {
+                        continue;
+                    }
+                    if line.starts_with("Language") {
+                        lang_attention = true;
+                        continue;
+                    }
+                    if lang_attention {
+                        if let Some((lang, _)) = line.split_once(" ") {
+                            return Some(lang.to_string());
+                        }
+                        break;
+                    }
+                }
+                return None;
+            } else {
+                return None;
+            }
+        }
+        Err(_) => return None,
     }
 }
