@@ -5,6 +5,9 @@ ifeq ($(url),)
 	$(error url is not supplied, Please specify it like this: make url="https://...")
 endif
 
+dev:
+	pnpm tauri dev
+
 all: download split
 
 download:

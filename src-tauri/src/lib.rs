@@ -1,4 +1,4 @@
-mod webvtt;
+pub mod webvtt;
 use dotenv::dotenv;
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;

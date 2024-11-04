@@ -88,7 +88,7 @@ pub async fn run_yt_vtt(app: tauri::AppHandle, url: &str, lang: &str) -> Result<
         args.push("--proxy".to_string());
         args.push(proxy_url);
     }
-    let standard_args = vec!["--skip-download", "--wirte-subs", "--sub-lang", lang, "-o"];
+    let standard_args = vec!["--skip-download", "--write-subs", "--sub-lang", lang, "-o"];
     args.extend(standard_args.into_iter().map(String::from));
     args.push(temp_path_str.to_string());
     args.push(url.to_string());

@@ -28,10 +28,11 @@ const StreamText = () => {
 
 function App() {
   const [greetMsg, setGreetMsg] = React.useState("");
-  const [name, setName] = React.useState("");
+  const [url, setUrl] = React.useState("");
+  const [lang, setLang] = React.useState("en");
 
   async function greet() {
-    setGreetMsg(await invoke("run_yt", { url: name }));
+    setGreetMsg(await invoke("run_yt_vtt", { url, lang }));
   }
 
   return (
@@ -47,9 +48,15 @@ function App() {
       >
         <input
           id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+          onChange={(e) => setUrl(e.currentTarget.value)}
+          placeholder="Enter a url..."
         />
+        <input
+          id="lang-input"
+          onChange={(e) => setLang(e.currentTarget.value)}
+          placeholder="Enter a lang"
+        />
+
         <button type="submit">Greet</button>
       </form>
       <p>{greetMsg}</p>
