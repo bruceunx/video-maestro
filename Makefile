@@ -1,16 +1,19 @@
 .PHONY: all download whisper
 
-include ./src-tauri/.env
 
-YT = ./src-tauri/binaries/ytdown-aarch64-apple-darwin
-WHISPER = ./src-tauri/binaries/whisper-aarch64-apple-darwin
-
+# must make the statment before .env, or the eq always evaluate
 ifeq ($(url),)
 	$(error url is not supplied, Please specify it like this: make url="https://...")
 endif
 
+include ./src-tauri/.env
+
+YT := ./src-tauri/binaries/ytdown-aarch64-apple-darwin
+WHISPER := ./src-tauri/binaries/whisper-aarch64-apple-darwin
+
 dev:
 	pnpm tauri dev
+
 
 all: download split
 
