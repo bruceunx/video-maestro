@@ -15,3 +15,4 @@
 
 - [ ] build front page with tailwind and `radix-ui`
 - [ ] render the markdown in `reactjs`
+- [ ] add choices for snapshot or save the summary and the title to a database
