@@ -65,7 +65,7 @@ function App() {
               className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-700 active:bg-blue-900"
               onClick={parse_and_summarize}
             >
-              parse
+              Summarize
             </button>
           </div>
 

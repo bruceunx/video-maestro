@@ -14,3 +14,4 @@
 # TODO
 
 - [ ] build front page with tailwind and `radix-ui`
+- [ ] render the markdown in `reactjs`
