@@ -22,11 +22,17 @@ function App() {
   const [content, setContent] = React.useState("");
 
   async function parse_and_summarize() {
+    // check if select lang, if select, then download vtt directly
     // setGreetMsg(await invoke("run_yt_vtt", { url, lang }));
     if (url.trim().length === 0) return;
     console.log(lang);
     setContent("");
-    setProgress(await invoke("run_yt", { url }));
+    try {
+      const result_msg = await invoke("run_yt", { url });
+      setProgress(result_msg as string);
+    } catch (error) {
+      setProgress(`Error from ${error}`);
+    }
   }
 
   React.useEffect(() => {
@@ -50,13 +56,13 @@ function App() {
           >
             <input
               id="url-input"
-              className="p-2 rounded-md"
+              className="p-2 rounded-md w-72"
               onChange={(e) => setUrl(e.currentTarget.value)}
-              placeholder="Enter a url..."
+              placeholder="Enter a video url..."
             />
             <input
               id="lang-input"
-              className="p-2 rounded-md"
+              className="p-2 rounded-md w-30"
               onChange={(e) => setLang(e.currentTarget.value)}
               placeholder="Enter the language"
             />
