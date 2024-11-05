@@ -67,7 +67,7 @@ pub async fn handle_summarize(app: tauri::AppHandle, vtt_file: &Path) -> Result<
         chat_stream(&app, &api_key, &chunk, &llm_model_name, &llm_api_url).await?;
     }
     app.emit("stream", "[end]")?;
-
+    fs::remove_file(vtt_file).await?;
     Ok(())
 }
 
