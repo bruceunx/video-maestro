@@ -6,6 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 import "./App.css";
+import CaptionCheckBox from "./components/CaptionCheckBox";
 
 const StreamText = ({ content }: { content: string }) => {
   return (
@@ -18,14 +19,14 @@ const StreamText = ({ content }: { content: string }) => {
 function App() {
   const [progressState, setProgress] = React.useState("");
   const [url, setUrl] = React.useState("");
-  const [lang, setLang] = React.useState("en");
   const [content, setContent] = React.useState("");
+  const [useCaption, setUseCaption] = React.useState(true);
 
   async function parse_and_summarize() {
     // check if select lang, if select, then download vtt directly
     // setGreetMsg(await invoke("run_yt_vtt", { url, lang }));
+    console.log(useCaption);
     if (url.trim().length === 0) return;
-    console.log(lang);
     setContent("");
     setProgress("");
     try {
@@ -35,6 +36,11 @@ function App() {
       setProgress(`Error from ${error}`);
     }
   }
+
+  const handleChecked = (checked: boolean) => {
+    setUseCaption(checked);
+    console.log(checked);
+  };
 
   React.useEffect(() => {
     const unlisten = listen("stream", (event) => {
@@ -61,12 +67,7 @@ function App() {
               onChange={(e) => setUrl(e.currentTarget.value)}
               placeholder="Enter a video url..."
             />
-            <input
-              id="lang-input"
-              className="p-2 rounded-md w-30"
-              onChange={(e) => setLang(e.currentTarget.value)}
-              placeholder="Enter the language"
-            />
+            <CaptionCheckBox handleChecked={handleChecked} />
             <button
               type="submit"
               className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-700 active:bg-blue-900"
