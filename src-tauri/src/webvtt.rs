@@ -20,7 +20,7 @@ fn parse_timestamp(timestamp: &str) -> Option<Duration> {
 }
 
 pub async fn extract_vtt_chunks(vtt_file: &Path) -> Result<Vec<String>> {
-    let interval = Duration::from_secs(600);
+    let interval = Duration::from_secs(500);
     let mut last_split_duration = Duration::ZERO;
 
     let mut chunks = Vec::new();

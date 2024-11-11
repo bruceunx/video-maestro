@@ -27,6 +27,7 @@ function App() {
     if (url.trim().length === 0) return;
     console.log(lang);
     setContent("");
+    setProgress("");
     try {
       const result_msg = await invoke("run_yt", { url });
       setProgress(result_msg as string);
