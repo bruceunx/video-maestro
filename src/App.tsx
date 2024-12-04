@@ -75,7 +75,17 @@ function App() {
   const [content, setContent] = React.useState("");
   const [useCaption, setUseCaption] = React.useState(true);
 
+  async function test_sql(): Promise<number> {
+    const video = await invoke("create_video", {
+      url: "http://example1.com",
+      title: "just test video link",
+    });
+    console.log(video);
+    return video.id;
+  }
+
   async function parse_and_summarize() {
+    test_sql();
     // check if select lang, if select, then download vtt directly
     // setGreetMsg(await invoke("run_yt_vtt", { url, lang }));
     console.log(useCaption);

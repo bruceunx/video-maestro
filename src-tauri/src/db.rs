@@ -55,10 +55,10 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DataBase, DataBaseError> {
 }
 
 #[tauri::command]
-pub fn create_user(db: State<DataBase>, url: String, title: String) -> Result<Video, String> {
+pub fn create_video(db: State<DataBase>, url: String, title: String) -> Result<Video, String> {
     let db = db.0.lock().map_err(|e| e.to_string())?;
     db.execute(
-        "INSERT INTO Video (url, title) value (?1, ?2)",
+        "INSERT INTO Video (url, title) VALUES (?1, ?2)",
         params![url, title],
     )
     .map_err(|e| e.to_string())?;

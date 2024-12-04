@@ -138,7 +138,7 @@ pub fn run() {
             greet,
             run_yt,
             webvtt::run_yt_vtt,
-            db::create_user,
+            db::create_video,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
