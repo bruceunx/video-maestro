@@ -19,10 +19,15 @@ pub enum DataBaseError {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct User {
+pub struct Video {
     id: i64,
-    username: String,
-    password: String,
+    url: String,
+    title: String,
+    time_length: Option<i64>,
+    transcripts: Option<String>,
+    translate: Option<String>,
+    summary: Option<String>,
+    timestamp: Option<i64>,
 }
 
 pub fn init_db(app_handle: &AppHandle) -> Result<DataBase, DataBaseError> {
@@ -33,10 +38,15 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DataBase, DataBaseError> {
     let connection = Connection::open(db_path)?;
 
     connection.execute(
-        "CREATE TABLE IF NOT EXISTS users (
+        "CREATE TABLE IF NOT EXISTS Video (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
-            email TEXT NOT NULL UNIQUE
+            url TEXT NOT NULL UNIQUE,
+            title TEXT,
+            time_length INTEGER,
+            transcripts TEXT,
+            translate TEXT,
+            summary TEXT,
+            timestamp INTEGER DEFAULT (strftime('%s', 'now'))
         )",
         [],
     )?;
@@ -45,21 +55,22 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DataBase, DataBaseError> {
 }
 
 #[tauri::command]
-pub fn create_user(
-    db: State<DataBase>,
-    username: String,
-    password: String,
-) -> Result<User, String> {
+pub fn create_user(db: State<DataBase>, url: String, title: String) -> Result<Video, String> {
     let db = db.0.lock().map_err(|e| e.to_string())?;
     db.execute(
-        "INSERT INTO User (username, password) value (?1, ?2)",
-        params![username, password],
+        "INSERT INTO Video (url, title) value (?1, ?2)",
+        params![url, title],
     )
     .map_err(|e| e.to_string())?;
     let db_id = db.last_insert_rowid();
-    Ok(User {
+    Ok(Video {
         id: db_id,
-        username,
-        password,
+        url,
+        title,
+        time_length: None,
+        transcripts: None,
+        translate: None,
+        summary: None,
+        timestamp: None,
     })
 }
