@@ -7,6 +7,59 @@ import { listen } from "@tauri-apps/api/event";
 
 import "./App.css";
 import CaptionCheckBox from "./components/CaptionCheckBox";
+import VideoItems, { VideoData } from "./components/VideoItems";
+
+const videoList: VideoData[] = [
+  {
+    url: "https://example.com/video1",
+    videoTitle: "Understanding JavaScript Closures",
+    timeLength: 600, // in seconds
+    transcripts: "In this video, we will explore closures in JavaScript...",
+    translate:
+      "Dalam video ini, kita akan menjelajahi closure dalam JavaScript...",
+    summary:
+      "This video explains closures, their uses, and common examples in JavaScript.",
+  },
+  {
+    url: "https://example.com/video2",
+    videoTitle: "Introduction to Rust Programming",
+    timeLength: 900, // in seconds
+    transcripts:
+      "Rust is a modern programming language that ensures memory safety...",
+    translate:
+      "Rust adalah bahasa pemrograman modern yang menjamin keamanan memori...",
+    summary:
+      "An overview of Rust programming language, focusing on memory safety and performance.",
+  },
+  {
+    url: "https://example.com/video3",
+    videoTitle: "Machine Learning Basics",
+    timeLength: 1200, // in seconds
+    transcripts: "Machine learning is a subset of artificial intelligence...",
+    translate: "Pembelajaran mesin adalah bagian dari kecerdasan buatan...",
+    summary: "An introduction to machine learning concepts and applications.",
+  },
+  {
+    url: "https://example.com/video4",
+    videoTitle: "Building UIs with React",
+    timeLength: 750, // in seconds
+    transcripts:
+      "React is a JavaScript library for building user interfaces...",
+    translate:
+      "React adalah pustaka JavaScript untuk membangun antarmuka pengguna...",
+    summary:
+      "This video covers the fundamentals of React and how to build a simple UI.",
+  },
+  {
+    url: "https://example.com/video5",
+    videoTitle: "Understanding Databases: SQL vs NoSQL",
+    timeLength: 1050, // in seconds
+    transcripts: "Databases are essential for storing and managing data...",
+    translate: "Basis data penting untuk menyimpan dan mengelola data...",
+    summary:
+      "A comparison of SQL and NoSQL databases, their use cases, and differences.",
+  },
+];
 
 const StreamText = ({ content }: { content: string }) => {
   return (
@@ -54,12 +107,14 @@ function App() {
 
   return (
     <>
-      <div className="flex h-screen w-screen bg-gray-200">
-        <div id="leftbar" className="flex flex-col w-60 bg-blue-200"></div>
-        <div id="main" className="flex flex-col bg-red-100 w-full">
+      <div className="flex h-screen w-screen">
+        <div className="flex flex-col w-64 h-full bg-zinc-700 text-white justify-stretch">
+          <VideoItems items={videoList} />
+        </div>
+        <div id="main" className="flex flex-col bg-zinc-500 w-full">
           <div
             id="header-bar"
-            className="flex flex-row justify-center space-x-10 w-full mx-auto mt-5"
+            className="flex flex-row justify-center space-x-10 w-full mx-auto py-2 bg-zinc-700"
           >
             <input
               id="url-input"

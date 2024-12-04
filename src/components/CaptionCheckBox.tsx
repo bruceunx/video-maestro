@@ -18,7 +18,7 @@ const CaptionCheckBox = ({
           <CheckIcon className="text-gray-500 w-full h-full p-1" />
         </CheckBox.Indicator>
       </CheckBox.Root>
-      <label htmlFor="use-caption" className="text-gray-600">
+      <label htmlFor="use-caption" className="text-gray-100">
         Use subtitle
       </label>
     </div>
