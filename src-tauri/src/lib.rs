@@ -3,6 +3,7 @@ use dotenv::dotenv;
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
 use tokio::fs;
+mod db;
 mod whisper;
 
 #[tauri::command]
@@ -127,8 +128,18 @@ async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
 pub fn run() {
     dotenv().ok();
     tauri::Builder::default()
+        .setup(|app| {
+            let database = db::init_db(app.handle())?;
+            app.manage(database);
+            Ok(())
+        })
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![greet, run_yt, webvtt::run_yt_vtt,])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            run_yt,
+            webvtt::run_yt_vtt,
+            db::create_user,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
