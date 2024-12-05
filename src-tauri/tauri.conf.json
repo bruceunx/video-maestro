@@ -15,7 +15,7 @@
         "title": "newscenter",
         "width": 1800,
         "height": 1000,
-        "minWidth": 800,
+        "minWidth": 1000,
         "minHeight": 600
       }
     ],

@@ -123,14 +123,14 @@ function App() {
         <div className="flex flex-col w-64 h-full bg-zinc-700 text-white justify-stretch">
           <VideoItems items={videoList} />
         </div>
-        <div id="main" className="flex flex-col bg-zinc-200 w-full">
+        <div id="main" className="flex flex-col bg-gray-200 w-full">
           <div
             id="header-bar"
             className="flex flex-row justify-center space-x-10 w-full mx-auto py-2 bg-zinc-700"
           >
             <input
               id="url-input"
-              className="p-2 rounded-md w-72"
+              className="p-2 rounded-md w-1/2 min-w-96"
               onChange={(e) => setUrl(e.currentTarget.value)}
               placeholder="Enter a video url..."
             />
@@ -169,7 +169,7 @@ function App() {
                   <span>Summary</span>
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto bg-zinc-300">
                 <StreamText content={MarkdownContent} />
               </div>
             </div>
