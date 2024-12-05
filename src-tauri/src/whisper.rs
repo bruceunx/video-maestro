@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use anyhow::Result;
 use futures_util::StreamExt;
 use reqwest::multipart::{Form, Part};
@@ -85,16 +83,22 @@ async fn create_client() -> Result<Client> {
 //     start: f64,
 //     end: f64,
 // }
-pub(crate) async fn chat_stream(
-    app: &tauri::AppHandle,
-    api_key: &str,
-    user_message: &str,
-    llm_model: &str,
-    api_url: &str,
-) -> Result<()> {
+#[tauri::command(rename_all = "snake_case")]
+pub async fn summary(app: tauri::AppHandle, context: String) -> Result<(), String> {
+    match chat_stream(&app, &context).await {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+pub async fn chat_stream(app: &tauri::AppHandle, user_message: &str) -> Result<(), String> {
     println!("run chat stream");
 
-    let client = create_client().await?;
+    let api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
+    let llm_model = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
+    let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
+
+    let client = create_client().await.map_err(|e| e.to_string())?;
 
     let request = ChatRequest {
         messages: vec![
@@ -116,11 +120,12 @@ pub(crate) async fn chat_stream(
         .header("Authorization", format!("Bearer {}", api_key))
         .json(&request)
         .send()
-        .await?;
+        .await
+        .map_err(|e| e.to_string())?;
 
     let mut stream = response.bytes_stream();
     while let Some(chunk) = stream.next().await {
-        let chunk = chunk?;
+        let chunk = chunk.map_err(|e| e.to_string())?;
         let chunk_str = String::from_utf8_lossy(&chunk);
 
         for line in chunk_str.split("data: ") {
@@ -132,7 +137,7 @@ pub(crate) async fn chat_stream(
             if let Ok(response) = serde_json::from_str::<ChatResponse>(line) {
                 for choice in response.choices {
                     if let Some(content) = choice.delta.content {
-                        app.emit("stream", content)?;
+                        app.emit("stream", content).map_err(|e| e.to_string())?;
                         std::io::stdout().flush().unwrap();
                     }
                 }
@@ -189,8 +194,8 @@ pub async fn trancript_summary(app: tauri::AppHandle, audio_path: &Path) -> Resu
     let api_url = std::env::var("GROQ_AUDIO_URL").expect("AUDIO URL is missing!");
     let model_name = std::env::var("AUDIO_MODEL").expect("AUDIO MODEL is missing!");
 
-    let llm_api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
-    let llm_model_name = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
+    // let llm_api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
+    // let llm_model_name = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
 
     let mut dir = fs::read_dir(audio_path).await?;
     app.emit("stream", "[start]")?;
@@ -205,7 +210,8 @@ pub async fn trancript_summary(app: tauri::AppHandle, audio_path: &Path) -> Resu
             }
         };
 
-        chat_stream(&app, &api_key, &text, &llm_model_name, &llm_api_url).await?;
+        app.emit("stream", &text)?;
+        // chat_stream(&app, &api_key, &text, &llm_model_name, &llm_api_url).await?;
     }
     app.emit("stream", "[end]")?;
     remove_files_from_directory(audio_path).await?;

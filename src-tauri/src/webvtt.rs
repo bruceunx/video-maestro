@@ -57,14 +57,10 @@ pub async fn extract_vtt_chunks(vtt_file: &Path) -> Result<Vec<String>> {
 }
 
 pub async fn handle_summarize(app: tauri::AppHandle, vtt_file: &Path) -> Result<()> {
-    let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
-
-    let llm_api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
-    let llm_model_name = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
     let chunks = extract_vtt_chunks(vtt_file).await?;
     app.emit("stream", "[start]")?;
     for chunk in chunks {
-        chat_stream(&app, &api_key, &chunk, &llm_model_name, &llm_api_url).await?;
+        chat_stream(&app, &chunk).await.unwrap();
     }
     app.emit("stream", "[end]")?;
     fs::remove_file(vtt_file).await?;

@@ -101,7 +101,8 @@ function App() {
 
   React.useEffect(() => {
     const unlisten = listen("stream", (event) => {
-      setContent((prevContent) => prevContent + event.payload);
+      if (event.payload !== "[start]" && event.payload !== "[end]")
+        setContent((prevContent) => prevContent + event.payload);
     });
 
     return () => {

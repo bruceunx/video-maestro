@@ -6,11 +6,6 @@ use tokio::fs;
 mod db;
 mod whisper;
 
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
 async fn run_ffmpeg(app: tauri::AppHandle) -> String {
     println!("run ffmpeg");
     let cache_dir = app.path().cache_dir().unwrap();
@@ -112,11 +107,16 @@ async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
         .sidecar("ytdown")
         .expect("should find the ytdown!")
         .args(args)
-        .output();
+        .output()
+        .await
+        .map_err(|e| e.to_string())?;
 
-    let _ = output.await.map_err(|e| e.to_string())?;
-
-    Ok(run_ffmpeg(app).await)
+    if output.status.success() {
+        Ok(run_ffmpeg(app).await)
+    } else {
+        let err_message = String::from_utf8_lossy(&output.stderr).to_string();
+        Err(err_message)
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -130,8 +130,8 @@ pub fn run() {
         })
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
-            greet,
             run_yt,
+            whisper::summary,
             webvtt::run_yt_vtt,
             db::create_video,
             db::get_videos,
