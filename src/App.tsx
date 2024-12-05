@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { FaLanguage, FaClosedCaptioning } from "react-icons/fa";
 import { MdSummarize } from "react-icons/md";
+import { IoMdSettings } from "react-icons/io";
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -121,6 +122,12 @@ function App() {
     <>
       <div className="flex h-screen w-screen">
         <div className="flex flex-col w-64 h-full bg-zinc-700 text-white justify-stretch">
+          <button
+            className=" p-2 rounded-full transition-colors"
+            aria-label="Settings"
+          >
+            <IoMdSettings className="w-6 h-6 text-gray-500 hover:text-gray-400 active:text-gray-300" />
+          </button>
           <VideoItems items={videoList} />
         </div>
         <div id="main" className="flex flex-col bg-gray-200 w-full">

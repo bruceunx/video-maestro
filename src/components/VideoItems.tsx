@@ -52,7 +52,7 @@ const VideoItems = ({ items }: VideoListProps) => {
   }, []);
   return (
     <div
-      className="flex flex-col gap-2 h-full pt-7 px-2 overflow-y-hidden"
+      className="flex flex-col gap-2 h-full px-2 overflow-y-hidden"
       style={{
         height: contentHeight,
       }}
