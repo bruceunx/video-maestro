@@ -78,17 +78,8 @@ function App() {
   const [content, setContent] = React.useState("");
   const [useCaption, setUseCaption] = React.useState(true);
 
-  async function test_sql(): Promise<number> {
-    const video: VideoData = await invoke("create_video", {
-      url: "http://example1.com",
-      title: "just test video link",
-    });
-    console.log(video);
-    return video.id;
-  }
-
   async function parse_and_summarize() {
-    test_sql();
+    // test_sql();
     // check if select lang, if select, then download vtt directly
     // setGreetMsg(await invoke("run_yt_vtt", { url, lang }));
     console.log(useCaption);
@@ -150,7 +141,7 @@ function App() {
           <p>{progressState}</p>
           <div className="flex flex-row justify-between items-stretch w-full overflow-hidden">
             <div className="w-1/2 overflow-y-auto">
-              <StreamText content={MarkdownContent} />
+              <StreamText content={content} />
             </div>
             <div className="flex flex-col w-1/2">
               <div className="flex bg-zinc-600 py-2 justify-center items-center gap-7">

@@ -32,6 +32,7 @@ async fn run_ffmpeg(app: tauri::AppHandle) -> String {
         .expect("remove temp fold failed");
 
     let split_path = format!("{}/temp_%02d.wav", split_fold.to_str().unwrap());
+    println!("{}", temp_path_str);
 
     let command = app
         .shell()
@@ -89,6 +90,7 @@ async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
         args.push("--proxy".to_string());
         args.push(proxy_url);
     }
+
     let standard_args = vec![
         "--force-overwrites",
         "-x",
@@ -105,23 +107,16 @@ async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
     args.push(temp_path_str.to_string());
     args.push(url.to_string());
 
-    let command = app
+    let output = app
         .shell()
         .sidecar("ytdown")
         .expect("should find the ytdown!")
-        .args(args);
+        .args(args)
+        .output();
 
-    match command.output().await {
-        Ok(output) => {
-            if output.status.success() {
-                Ok(run_ffmpeg(app).await)
-            } else {
-                let err_message = String::from_utf8_lossy(&output.stderr).to_string();
-                Err(format!("error: {}", err_message))
-            }
-        }
-        Err(e) => Err(format!("error: {}", e)),
-    }
+    let _ = output.await.map_err(|e| e.to_string())?;
+
+    Ok(run_ffmpeg(app).await)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
