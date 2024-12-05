@@ -1,9 +1,7 @@
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { FaLanguage, FaClosedCaptioning } from "react-icons/fa";
-import { MdSummarize } from "react-icons/md";
-import { IoMdSettings } from "react-icons/io";
+import { Languages, Captions, FileText } from "lucide-react";
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -13,6 +11,7 @@ import CaptionCheckBox from "./components/CaptionCheckBox";
 import VideoItems from "./components/VideoItems";
 import { videoList, MarkdownContent } from "./data";
 import { useToast } from "hooks/ToastProvider";
+import SettingsModal from "components/SettingsModal";
 
 const StreamText = ({ content }: { content: string }) => {
   return (
@@ -122,12 +121,7 @@ function App() {
     <>
       <div className="flex h-screen w-screen">
         <div className="flex flex-col w-64 h-full bg-zinc-700 text-white justify-stretch">
-          <button
-            className=" p-2 rounded-full transition-colors"
-            aria-label="Settings"
-          >
-            <IoMdSettings className="w-6 h-6 text-gray-500 hover:text-gray-400 active:text-gray-300" />
-          </button>
+          <SettingsModal />
           <VideoItems items={videoList} />
         </div>
         <div id="main" className="flex flex-col bg-gray-200 w-full">
@@ -148,7 +142,7 @@ function App() {
                           hover:bg-purple-600 active:bg-purple-700"
               onClick={parse_and_summarize}
             >
-              <FaClosedCaptioning className="w-7 h-7" />
+              <Captions className="w-7 h-7" />
               <span>Transcripts</span>
             </button>
           </div>
@@ -164,7 +158,7 @@ function App() {
                               bg-blue-500 text-white rounded-lg 
                               hover:bg-blue-600 active:bg-blue-700"
                 >
-                  <FaLanguage className="w-7 h-7" />
+                  <Languages className="w-7 h-7" />
                   <span>Translate</span>
                 </button>
                 <button
@@ -172,7 +166,7 @@ function App() {
                               bg-green-500 text-white rounded-lg 
                               hover:bg-green-600 active:bg-green-700"
                 >
-                  <MdSummarize className="w-7 h-7" />
+                  <FileText className="w-7 h-7" />
                   <span>Summary</span>
                 </button>
               </div>
