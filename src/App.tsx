@@ -10,8 +10,8 @@ import { listen } from "@tauri-apps/api/event";
 import "./App.css";
 import CaptionCheckBox from "./components/CaptionCheckBox";
 import VideoItems from "./components/VideoItems";
-import { VideoData } from "./types/db";
 import { videoList, MarkdownContent } from "./data";
+import { useToast } from "hooks/ToastProvider";
 
 const StreamText = ({ content }: { content: string }) => {
   return (
@@ -73,10 +73,11 @@ const StreamText = ({ content }: { content: string }) => {
 };
 
 function App() {
-  const [progressState, setProgress] = React.useState("");
   const [url, setUrl] = React.useState("");
   const [content, setContent] = React.useState("");
   const [useCaption, setUseCaption] = React.useState(true);
+
+  const { addToast } = useToast();
 
   async function parse_and_summarize() {
     // test_sql();
@@ -85,18 +86,24 @@ function App() {
     console.log(useCaption);
     if (url.trim().length === 0) return;
     setContent("");
-    setProgress("");
     try {
       const result_msg = await invoke("run_yt", { url });
-      setProgress(result_msg as string);
+      addToast({
+        message: result_msg as string,
+        variant: "success",
+        duration: 5000,
+      });
     } catch (error) {
-      setProgress(`Error from ${error}`);
+      addToast({
+        message: error as string,
+        variant: "error",
+        duration: 5000,
+      });
     }
   }
 
   const handleChecked = (checked: boolean) => {
     setUseCaption(checked);
-    console.log(checked);
   };
 
   React.useEffect(() => {
@@ -139,7 +146,6 @@ function App() {
             </button>
           </div>
 
-          <p>{progressState}</p>
           <div className="flex flex-row justify-between items-stretch w-full overflow-hidden">
             <div className="w-1/2 overflow-y-auto">
               <StreamText content={content} />
