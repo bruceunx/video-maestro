@@ -1,17 +1,39 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Settings, X } from "lucide-react";
+import { Settings, X, Eye, EyeOff } from "lucide-react";
+import { SettingsType } from "../types/settings";
 
-const SettingsModal = () => {
+const SettingsModal: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const [showApiKey, setShowApiKey] = React.useState(false);
 
-  const [darkMode, setDarkMode] = React.useState(false);
-  const [notifications, setNotifications] = React.useState(true);
+  const [settings, setSettings] = React.useState<SettingsType>({
+    apiKey: "",
+    aiSupplierUrl: "",
+    whisperModelName: "",
+    aiModelName: "",
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSettings((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const handleSave = () => {
-    console.log("Settings saved:", { darkMode, notifications });
+    // Implement save logic here
+    console.log("Settings saved:", settings);
     setIsOpen(false);
   };
+
+  // const toggleSetting = (key: keyof Settings) => {
+  //   setSettings((prev) => ({
+  //     ...prev,
+  //     [key]: !prev[key],
+  //   }));
+  // };
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
@@ -45,42 +67,95 @@ const SettingsModal = () => {
           </div>
 
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <label htmlFor="dark-mode" className="text-gray-700">
-                Dark Mode
-              </label>
-              <button
-                id="dark-mode"
-                onClick={() => setDarkMode(!darkMode)}
-                className={`w-12 h-6 rounded-full transition-colors ${
-                  darkMode ? "bg-blue-500" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`block w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
-                    darkMode ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
-            </div>
+            <div className="space-y-3">
+              <div className="relative">
+                <label
+                  htmlFor="apiKey"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  API Key
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type={showApiKey ? "text" : "password"}
+                    id="apiKey"
+                    name="apiKey"
+                    value={settings.apiKey}
+                    onChange={handleInputChange}
+                    className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+                               focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter your API key"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="ml-2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showApiKey ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
 
-            <div className="flex justify-between items-center">
-              <label htmlFor="notifications" className="text-gray-700">
-                Enable Notifications
-              </label>
-              <button
-                id="notifications"
-                onClick={() => setNotifications(!notifications)}
-                className={`w-12 h-6 rounded-full transition-colors ${
-                  notifications ? "bg-blue-500" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`block w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
-                    notifications ? "translate-x-6" : "translate-x-1"
-                  }`}
+              <div>
+                <label
+                  htmlFor="aiSupplierUrl"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  AI Supplier URL
+                </label>
+                <input
+                  type="text"
+                  id="aiSupplierUrl"
+                  name="aiSupplierUrl"
+                  value={settings.aiSupplierUrl}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+                             focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter AI supplier URL"
                 />
-              </button>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="modelName"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  AI Model Name
+                </label>
+                <input
+                  type="text"
+                  id="modelName"
+                  name="modelName"
+                  value={settings.aiModelName}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+                             focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter model name like gpt-4o"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="whisperModelName"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Whisper Model Name
+                </label>
+                <input
+                  type="text"
+                  id="whisperModelName"
+                  name="whisperModelName"
+                  value={settings.whisperModelName}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+                             focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter whisper model name"
+                />
+              </div>
             </div>
           </div>
 
