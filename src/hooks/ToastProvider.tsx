@@ -1,14 +1,12 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 import * as RadixToast from "@radix-ui/react-toast";
 import {
-  IoMdClose as CloseIcon,
-  IoMdCheckmarkCircle as SuccessIcon,
-  IoMdInformationCircle as InfoIcon,
-} from "react-icons/io";
-import {
-  FaExclamationCircle as ErrorIcon,
-  FaExclamationTriangle as WarningIcon,
-} from "react-icons/fa";
+  X as CloseIcon,
+  CheckCircle as SuccessIcon,
+  Info as InfoIcon,
+  AlertCircle as ErrorIcon,
+  AlertTriangle as WarningIcon,
+} from "lucide-react";
 
 export type ToastVariant = "success" | "error" | "warning" | "info";
 

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { AiOutlineCheckCircle, AiOutlineRedo } from "react-icons/ai";
+import { CheckCircle, Redo } from "lucide-react";
 import { formatTime } from "../utils/files";
 import { useData } from "../store/DataContext";
 
@@ -21,9 +21,9 @@ const VideoItem = ({ item }: VideoItemProps) => {
     >
       <div className="flex flex-row items-center space-x-3">
         {item.transcripts.length === 0 ? (
-          <AiOutlineRedo className="text-gray-500" />
+          <Redo className="text-gray-500" />
         ) : (
-          <AiOutlineCheckCircle className="text-green-500" />
+          <CheckCircle className="text-green-500" />
         )}
         <p className="text-gray-200">
           {item.videoTitle.length > 17

@@ -1,5 +1,5 @@
 import * as CheckBox from "@radix-ui/react-checkbox";
-import { CheckIcon } from "@radix-ui/react-icons";
+import { Check } from "lucide-react";
 
 const CaptionCheckBox = ({
   handleChecked,
@@ -15,7 +15,7 @@ const CaptionCheckBox = ({
         onCheckedChange={handleChecked}
       >
         <CheckBox.Indicator>
-          <CheckIcon className="text-gray-500 w-full h-full p-1" />
+          <Check className="text-gray-500 w-full h-full p-1" />
         </CheckBox.Indicator>
       </CheckBox.Root>
       <label htmlFor="use-caption" className="text-gray-100">
