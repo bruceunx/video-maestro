@@ -3,22 +3,7 @@ import { AiOutlineCheckCircle, AiOutlineRedo } from "react-icons/ai";
 import { formatTime } from "../utils/files";
 import { useData } from "../store/DataContext";
 
-export interface VideoData {
-  url: string;
-  videoTitle: string;
-  timeLength: number;
-  transcripts: string;
-  translate: string;
-  summary: string;
-}
-
-interface VideoItemProps {
-  item: VideoData;
-}
-
-interface VideoListProps {
-  items: VideoData[];
-}
+import { VideoItemProps, VideoListProps } from "../types/db";
 
 const VideoItem = ({ item }: VideoItemProps) => {
   const { item: currentFile } = useData();

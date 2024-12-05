@@ -74,3 +74,58 @@ pub fn create_video(db: State<DataBase>, url: String, title: String) -> Result<V
         timestamp: None,
     })
 }
+
+#[tauri::command]
+pub fn get_videos(db: State<DataBase>) -> Result<Vec<Video>, String> {
+    let db = db.0.lock().map_err(|e| e.to_string())?;
+
+    let mut stmt = db
+        .prepare("SELECT * from Video")
+        .map_err(|e| e.to_string())?;
+
+    let video_iter = stmt
+        .query_map([], |row| {
+            Ok(Video {
+                id: row.get(0)?,
+                url: row.get(1)?,
+                title: row.get(2)?,
+                time_length: row.get(3).ok(),
+                transcripts: row.get(4).ok(),
+                translate: row.get(5).ok(),
+                summary: row.get(6).ok(),
+                timestamp: row.get(7).ok(),
+            })
+        })
+        .map_err(|e| e.to_string())?;
+
+    let mut videos = Vec::new();
+    for video in video_iter {
+        videos.push(video.map_err(|e| e.to_string())?)
+    }
+    Ok(videos)
+}
+
+#[tauri::command]
+pub fn update_video(
+    db: State<DataBase>,
+    id: i64,
+    column: String,
+    value: String,
+) -> Result<(), String> {
+    let db = db.0.lock().map_err(|e| e.to_string())?;
+
+    db.execute(
+        &format!("UPDATE Video SET {} = ?1 Where id=?2", column),
+        params![value, id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_video(db: State<DataBase>, id: i64) -> Result<(), String> {
+    let db = db.0.lock().map_err(|e| e.to_string())?;
+    db.execute("DELETE From Video WHERE id =?1", params![id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}

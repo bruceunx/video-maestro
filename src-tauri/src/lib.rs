@@ -139,6 +139,9 @@ pub fn run() {
             run_yt,
             webvtt::run_yt_vtt,
             db::create_video,
+            db::get_videos,
+            db::update_video,
+            db::delete_video,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
