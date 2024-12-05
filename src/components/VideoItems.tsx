@@ -26,8 +26,8 @@ const VideoItem = ({ item }: VideoItemProps) => {
           <AiOutlineCheckCircle className="text-green-500" />
         )}
         <p className="text-gray-200">
-          {item.videoTitle.length > 15
-            ? item.videoTitle.substring(0, 15) + "..."
+          {item.videoTitle.length > 17
+            ? item.videoTitle.substring(0, 17) + "..."
             : item.videoTitle}
         </p>
       </div>
@@ -52,7 +52,7 @@ const VideoItems = ({ items }: VideoListProps) => {
   }, []);
   return (
     <div
-      className="flex flex-col gap-2 h-full pt-7 overflow-y-hidden"
+      className="flex flex-col gap-2 h-full pt-7 px-2 overflow-y-hidden"
       style={{
         height: contentHeight,
       }}
