@@ -97,6 +97,7 @@ function App() {
       if (event.payload === "[start]") {
         setInProgress(true);
         setContent("");
+        setSummary("");
       } else if (event.payload === "[end]") {
         setInProgress(false);
         addToast({
@@ -171,7 +172,7 @@ function App() {
           </div>
 
           <div className="flex flex-row justify-between items-stretch w-full overflow-hidden h-full">
-            <div className="w-1/2 overflow-y-auto">
+            <div className="w-1/2 overflow-y-auto h-full">
               {currentVideo && (
                 <>
                   <h2 className="text-center text-xl text-gray-700">

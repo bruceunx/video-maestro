@@ -122,12 +122,18 @@ pub async fn get_sub_lang(app: &tauri::AppHandle, url: &str) -> Option<String> {
         Ok(output) => {
             if output.status.success() {
                 let output_str = std::str::from_utf8(&output.stdout).unwrap();
+
                 if output_str.contains("has no subtitles") {
                     return None;
                 }
                 for line in output_str.lines() {
                     if line.is_empty() {
                         continue;
+                    }
+                    if line.contains("Available automatic captions") {
+                        if !lang_attention {
+                            return None;
+                        }
                     }
                     if line.starts_with("Language") {
                         lang_attention = true;
