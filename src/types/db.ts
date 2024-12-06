@@ -3,6 +3,7 @@ export interface VideoData {
   url: string;
   title: string;
   duration: number;
+  upload_date: string;
   transcripts: string;
   translate: string;
   summary: string;

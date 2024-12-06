@@ -7,6 +7,7 @@ mod db;
 mod setting;
 mod whisper;
 use serde::Deserialize;
+use std::path::PathBuf;
 
 #[derive(Deserialize, Debug)]
 struct VideoInfo {
@@ -15,12 +16,12 @@ struct VideoInfo {
     upload_date: String,
 }
 
-async fn run_ffmpeg(app: tauri::AppHandle) -> String {
+async fn run_ffmpeg(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     println!("run ffmpeg");
     let cache_dir = app.path().cache_dir().unwrap();
     let temp_path = cache_dir.join("newscenter").join("temp.wav");
     if !temp_path.is_file() {
-        return "Error: temp wav not exit".to_string();
+        return Err("Error: temp wav not exit".to_string());
     }
     let temp_path_str = temp_path.to_str().unwrap();
 
@@ -36,9 +37,8 @@ async fn run_ffmpeg(app: tauri::AppHandle) -> String {
         .expect("remove temp fold failed");
 
     let split_path = format!("{}/temp_%02d.wav", split_fold.to_str().unwrap());
-    println!("{}", temp_path_str);
 
-    let command = app
+    let output = app
         .shell()
         .sidecar("ffmpeg")
         .expect("ffmpeg command found")
@@ -55,24 +55,24 @@ async fn run_ffmpeg(app: tauri::AppHandle) -> String {
             "-c",
             "copy",
             &split_path,
-        ]);
+        ])
+        .output()
+        .await
+        .map_err(|e| e.to_string())?;
 
-    match command.output().await {
-        Ok(output) => {
-            if output.status.success() {
-                fs::remove_file(temp_path)
-                    .await
-                    .expect("cannot remove the temp file");
+    if output.status.success() {
+        fs::remove_file(temp_path)
+            .await
+            .expect("cannot remove the temp file");
 
-                match whisper::trancript_summary(app, &split_fold).await {
-                    Ok(_) => "success: summary finished".to_string(),
-                    Err(_) => "error: summary failed".to_string(),
-                }
-            } else {
-                "error: ffmpeg error".to_string()
-            }
-        }
-        Err(e) => format!("error from run command, {}", e),
+        Ok(split_fold)
+
+        // match whisper::trancript_summary(app, &split_fold).await {
+        //     Ok(_) => "success: summary finished".to_string(),
+        //     Err(_) => "error: summary failed".to_string(),
+        // }
+    } else {
+        Err("error: ffmpeg error".to_string())
     }
 }
 
@@ -103,6 +103,26 @@ async fn get_video_metadata(app: &tauri::AppHandle, url: &str) -> Result<VideoIn
     }
 }
 
+async fn handle_transcripts(
+    app: &tauri::AppHandle,
+    video_id: i64,
+    chunks: Vec<String>,
+) -> Result<(), String> {
+    let transcripts = chunks.join("\n\n");
+    db::update_video(
+        app.state(),
+        video_id,
+        "transcripts".to_string(),
+        transcripts,
+    )?;
+    app.emit("stream", "[start]").map_err(|e| e.to_string())?;
+    for chunk in chunks {
+        app.emit("stream", chunk).map_err(|e| e.to_string())?;
+    }
+    app.emit("stream", "[end]").map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command(rename_all = "snake_case")]
 async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
     println!("run yt");
@@ -119,20 +139,7 @@ async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
     if let Some(lang) = webvtt::get_sub_lang(&app, url).await {
         let vtt_path = webvtt::run_yt_vtt(&app, url, &lang).await?;
         let chunks = webvtt::extract_vtt_chunks(&vtt_path).await?;
-        let transcripts = chunks.join("");
-
-        db::update_video(
-            app.state(),
-            video_id,
-            "transcripts".to_string(),
-            transcripts,
-        )?;
-        app.emit("stream", "[start]").map_err(|e| e.to_string())?;
-        for chunk in chunks {
-            app.emit("stream", chunk).map_err(|e| e.to_string())?;
-        }
-        app.emit("stream", "[end]").map_err(|e| e.to_string())?;
-
+        handle_transcripts(&app, video_id, chunks).await?;
         return Ok("success".to_string());
     } else {
         let cache_dir = app.path().cache_dir().unwrap();
@@ -172,7 +179,12 @@ async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
             .map_err(|e| e.to_string())?;
 
         if output.status.success() {
-            Ok(run_ffmpeg(app).await)
+            let split_path = run_ffmpeg(&app).await?;
+            let chunks = whisper::trancript(&split_path)
+                .await
+                .map_err(|e| e.to_string())?;
+            handle_transcripts(&app, video_id, chunks).await?;
+            return Ok("success".to_string());
         } else {
             let err_message = String::from_utf8_lossy(&output.stderr).to_string();
             Err(err_message)
@@ -193,7 +205,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             run_yt,
-            whisper::summary,
+            whisper::run_summary,
             db::get_videos,
             db::delete_video,
             setting::load_settings,

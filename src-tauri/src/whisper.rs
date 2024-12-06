@@ -6,8 +6,11 @@ use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::path::Path;
 use tauri::Emitter;
+use tauri::Manager;
 use tokio::fs::{self, File};
 use tokio::io::AsyncReadExt;
+
+use super::db;
 
 // define the transcription struct with only text in my interest
 #[derive(Debug, Deserialize)]
@@ -84,16 +87,27 @@ async fn create_client() -> Result<Client> {
 //     end: f64,
 // }
 #[tauri::command(rename_all = "snake_case")]
-pub async fn summary(app: tauri::AppHandle, context: String) -> Result<(), String> {
-    match chat_stream(&app, &context).await {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e.to_string()),
+pub async fn run_summary(
+    app: tauri::AppHandle,
+    video_id: i64,
+    context: String,
+) -> Result<(), String> {
+    let chunks: Vec<String> = context.split("\n\n").map(|s| s.to_string()).collect();
+    let mut summary = Vec::new();
+    for chunk in chunks {
+        summary.push(chat_stream(&app, &chunk).await?)
     }
+    let summary_content = summary.join("\n\n");
+    db::update_video(
+        app.state(),
+        video_id,
+        "summary".to_string(),
+        summary_content,
+    )?;
+    Ok(())
 }
 
-pub async fn chat_stream(app: &tauri::AppHandle, user_message: &str) -> Result<(), String> {
-    println!("run chat stream");
-
+pub async fn chat_stream(app: &tauri::AppHandle, user_message: &str) -> Result<String, String> {
     let api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
     let llm_model = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
     let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
@@ -123,6 +137,8 @@ pub async fn chat_stream(app: &tauri::AppHandle, user_message: &str) -> Result<(
         .await
         .map_err(|e| e.to_string())?;
 
+    let mut summary = Vec::new();
+
     let mut stream = response.bytes_stream();
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| e.to_string())?;
@@ -137,6 +153,7 @@ pub async fn chat_stream(app: &tauri::AppHandle, user_message: &str) -> Result<(
             if let Ok(response) = serde_json::from_str::<ChatResponse>(line) {
                 for choice in response.choices {
                     if let Some(content) = choice.delta.content {
+                        summary.push(content.clone());
                         app.emit("stream", content).map_err(|e| e.to_string())?;
                         std::io::stdout().flush().unwrap();
                     }
@@ -145,7 +162,7 @@ pub async fn chat_stream(app: &tauri::AppHandle, user_message: &str) -> Result<(
         }
     }
 
-    Ok(())
+    Ok(summary.join(""))
 }
 
 async fn transcribe_audio(
@@ -189,7 +206,7 @@ async fn transcribe_audio(
     }
 }
 
-pub async fn trancript_summary(app: tauri::AppHandle, audio_path: &Path) -> Result<()> {
+pub async fn trancript(audio_path: &Path) -> Result<Vec<String>> {
     let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
     let api_url = std::env::var("GROQ_AUDIO_URL").expect("AUDIO URL is missing!");
     let model_name = std::env::var("AUDIO_MODEL").expect("AUDIO MODEL is missing!");
@@ -198,25 +215,24 @@ pub async fn trancript_summary(app: tauri::AppHandle, audio_path: &Path) -> Resu
     // let llm_model_name = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
 
     let mut dir = fs::read_dir(audio_path).await?;
-    app.emit("stream", "[start]")?;
+    let mut chunks = Vec::new();
+
+    // app.emit("stream", "[start]")?;
     while let Some(entry) = dir.next_entry().await? {
         let audio_path = entry.path();
         let audio_path_str = audio_path.to_str().unwrap();
-        let text = match transcribe_audio(&api_key, audio_path_str, &model_name, &api_url).await {
-            Ok(response) => response.text,
-            Err(e) => {
-                println!("error from transcribe_audio {}", e);
-                anyhow::bail!("Error from transcribe_audio {}", e)
-            }
+        match transcribe_audio(&api_key, audio_path_str, &model_name, &api_url).await {
+            Ok(response) => chunks.push(response.text),
+            Err(_) => continue,
         };
 
-        app.emit("stream", &text)?;
+        // app.emit("stream", &text)?;
         // chat_stream(&app, &api_key, &text, &llm_model_name, &llm_api_url).await?;
     }
-    app.emit("stream", "[end]")?;
+    // app.emit("stream", "[end]")?;
     remove_files_from_directory(audio_path).await?;
 
-    Ok(())
+    Ok(chunks)
 }
 
 // #[tokio::main]

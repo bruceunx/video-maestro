@@ -22,7 +22,7 @@ pub enum DataBaseError {
 pub struct Video {
     id: i64,
     url: String,
-    pub title: String,
+    title: String,
     duration: u64,
     upload_date: String,
     transcripts: Option<String>,
