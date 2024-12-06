@@ -1,5 +1,5 @@
 import * as React from "react";
-import { DataProvider } from "./DataContext";
+import { VideoDataProvider } from "./DataContext";
 import { SettingsProvider } from "./SettingsProvider";
 
 interface CombinedStoreProps {
@@ -7,7 +7,7 @@ interface CombinedStoreProps {
 }
 
 export const CombinedStore: React.FC<CombinedStoreProps> = ({ children }) => (
-  <DataProvider>
+  <VideoDataProvider>
     <SettingsProvider>{children}</SettingsProvider>
-  </DataProvider>
+  </VideoDataProvider>
 );

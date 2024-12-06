@@ -1,11 +1,11 @@
 export interface VideoData {
   id: number;
   url: string;
-  videoTitle: string;
-  timeLength: number;
-  transcripts: string;
-  translate: string;
-  summary: string;
+  videoTitle: string | null;
+  timeLength: number | null;
+  transcripts: string | null;
+  translate: string | null;
+  summary: string | null;
 }
 
 export interface VideoItemProps {
