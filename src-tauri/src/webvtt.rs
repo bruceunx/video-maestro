@@ -1,6 +1,6 @@
 use crate::whisper::chat_stream;
 use anyhow::Result;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tauri::{Emitter, Manager};
 use tauri_plugin_shell::ShellExt;
@@ -19,19 +19,19 @@ fn parse_timestamp(timestamp: &str) -> Option<Duration> {
     Some(Duration::from_secs(hour * 3600 + minute * 60 + second) + Duration::from_millis(millis))
 }
 
-pub async fn extract_vtt_chunks(vtt_file: &Path) -> Result<Vec<String>> {
+pub async fn extract_vtt_chunks(vtt_file: &Path) -> Result<Vec<String>, String> {
     let interval = Duration::from_secs(500);
     let mut last_split_duration = Duration::ZERO;
 
     let mut chunks = Vec::new();
     let mut text_parse = Vec::new();
-    let file = File::open(vtt_file).await?;
+    let file = File::open(vtt_file).await.map_err(|e| e.to_string())?;
     let reader = BufReader::new(file);
     let mut lines = reader.lines();
 
     let mut is_inblock: bool = false;
 
-    while let Some(line) = lines.next_line().await? {
+    while let Some(line) = lines.next_line().await.map_err(|e| e.to_string())? {
         if line.contains("-->") {
             if let Some((start, _)) = line.split_once(" --> ") {
                 is_inblock = true;
@@ -56,19 +56,18 @@ pub async fn extract_vtt_chunks(vtt_file: &Path) -> Result<Vec<String>> {
     Ok(chunks)
 }
 
-pub async fn handle_summarize(app: tauri::AppHandle, vtt_file: &Path) -> Result<()> {
+pub async fn handle_summarize(app: tauri::AppHandle, vtt_file: &Path) -> Result<(), String> {
     let chunks = extract_vtt_chunks(vtt_file).await?;
-    app.emit("stream", "[start]")?;
+    app.emit("stream", "[start]").map_err(|e| e.to_string())?;
     for chunk in chunks {
         chat_stream(&app, &chunk).await.unwrap();
     }
-    app.emit("stream", "[end]")?;
-    fs::remove_file(vtt_file).await?;
+    app.emit("stream", "[end]").map_err(|e| e.to_string())?;
+    fs::remove_file(vtt_file).await.map_err(|e| e.to_string())?;
     Ok(())
 }
 
-#[tauri::command(rename_all = "snake_case")]
-pub async fn run_yt_vtt(app: tauri::AppHandle, url: &str, lang: &str) -> Result<String, String> {
+pub async fn run_yt_vtt(app: &tauri::AppHandle, url: &str, lang: &str) -> Result<PathBuf, String> {
     println!("run yt download vtt");
     let cache_dir = app.path().cache_dir().unwrap();
     let vtt_dir = cache_dir.join("newscenter").join("vtt");
@@ -101,10 +100,11 @@ pub async fn run_yt_vtt(app: tauri::AppHandle, url: &str, lang: &str) -> Result<
         Ok(output) => {
             if output.status.success() {
                 let vtt_path = vtt_dir.join(format!("temp.{}.vtt", lang));
-                match handle_summarize(app, &vtt_path).await {
-                    Ok(_) => Ok("success: finished".to_string()),
-                    Err(_) => Err("error from summarizing".to_string()),
-                }
+                Ok(vtt_path)
+                // match handle_summarize(app, &vtt_path).await {
+                //     Ok(_) => Ok("success: finished".to_string()),
+                //     Err(_) => Err("error from summarizing".to_string()),
+                // }
             } else {
                 let err_message = String::from_utf8_lossy(&output.stderr).to_string();
                 Err(format!("error: {}", err_message))

@@ -1,6 +1,6 @@
 pub mod webvtt;
 use dotenv::dotenv;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_plugin_shell::ShellExt;
 use tokio::fs;
 mod db;
@@ -12,6 +12,7 @@ use serde::Deserialize;
 struct VideoInfo {
     title: String,
     duration: u64,
+    upload_date: String,
 }
 
 async fn run_ffmpeg(app: tauri::AppHandle) -> String {
@@ -75,7 +76,7 @@ async fn run_ffmpeg(app: tauri::AppHandle) -> String {
     }
 }
 
-async fn get_video_metadata(app: tauri::AppHandle, url: &str) -> Result<VideoInfo, String> {
+async fn get_video_metadata(app: &tauri::AppHandle, url: &str) -> Result<VideoInfo, String> {
     let mut args = Vec::new();
     if let Ok(proxy_url) = std::env::var("PROXY_URL") {
         args.push("--proxy".to_string());
@@ -106,61 +107,76 @@ async fn get_video_metadata(app: tauri::AppHandle, url: &str) -> Result<VideoInf
 async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
     println!("run yt");
 
-    let video_info = get_video_metadata(app.clone(), url).await?;
-    let video = db::create_video(
+    let video_info = get_video_metadata(&app, url).await?;
+    let video_id = db::create_video(
         app.state(),
         url.to_string(),
         video_info.title,
         video_info.duration,
+        video_info.upload_date,
     )?;
 
-    return Ok(video.title);
-
     if let Some(lang) = webvtt::get_sub_lang(&app, url).await {
-        return webvtt::run_yt_vtt(app, url, &lang).await;
-    }
+        let vtt_path = webvtt::run_yt_vtt(&app, url, &lang).await?;
+        let chunks = webvtt::extract_vtt_chunks(&vtt_path).await?;
+        let transcripts = chunks.join("");
 
-    let cache_dir = app.path().cache_dir().unwrap();
+        db::update_video(
+            app.state(),
+            video_id,
+            "transcripts".to_string(),
+            transcripts,
+        )?;
+        app.emit("stream", "[start]").map_err(|e| e.to_string())?;
+        for chunk in chunks {
+            app.emit("stream", chunk).map_err(|e| e.to_string())?;
+        }
+        app.emit("stream", "[end]").map_err(|e| e.to_string())?;
 
-    let temp_path = cache_dir.join("newscenter").join("temp.wav");
-    let temp_path_str = temp_path.to_str().unwrap();
-
-    let mut args = Vec::new();
-    if let Ok(proxy_url) = std::env::var("PROXY_URL") {
-        args.push("--proxy".to_string());
-        args.push(proxy_url);
-    }
-
-    let standard_args = vec![
-        "--force-overwrites",
-        "-x",
-        "-f",
-        "worstaudio[ext=webm]",
-        "--extract-audio",
-        "--audio-format",
-        "wav",
-        "--postprocessor-args",
-        "-ar 16000 -ac 1",
-        "-o",
-    ];
-    args.extend(standard_args.into_iter().map(String::from));
-    args.push(temp_path_str.to_string());
-    args.push(url.to_string());
-
-    let output = app
-        .shell()
-        .sidecar("ytdown")
-        .expect("should find the ytdown!")
-        .args(args)
-        .output()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    if output.status.success() {
-        Ok(run_ffmpeg(app).await)
+        return Ok("success".to_string());
     } else {
-        let err_message = String::from_utf8_lossy(&output.stderr).to_string();
-        Err(err_message)
+        let cache_dir = app.path().cache_dir().unwrap();
+
+        let temp_path = cache_dir.join("newscenter").join("temp.wav");
+        let temp_path_str = temp_path.to_str().unwrap();
+
+        let mut args = Vec::new();
+        if let Ok(proxy_url) = std::env::var("PROXY_URL") {
+            args.push("--proxy".to_string());
+            args.push(proxy_url);
+        }
+
+        let standard_args = vec![
+            "--force-overwrites",
+            "-x",
+            "-f",
+            "worstaudio[ext=webm]",
+            "--extract-audio",
+            "--audio-format",
+            "wav",
+            "--postprocessor-args",
+            "-ar 16000 -ac 1",
+            "-o",
+        ];
+        args.extend(standard_args.into_iter().map(String::from));
+        args.push(temp_path_str.to_string());
+        args.push(url.to_string());
+
+        let output = app
+            .shell()
+            .sidecar("ytdown")
+            .expect("should find the ytdown!")
+            .args(args)
+            .output()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if output.status.success() {
+            Ok(run_ffmpeg(app).await)
+        } else {
+            let err_message = String::from_utf8_lossy(&output.stderr).to_string();
+            Err(err_message)
+        }
     }
 }
 
@@ -178,10 +194,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             run_yt,
             whisper::summary,
-            webvtt::run_yt_vtt,
-            db::create_video,
             db::get_videos,
-            db::update_video,
             db::delete_video,
             setting::load_settings,
             setting::save_settings,
