@@ -10,29 +10,50 @@ import VideoItems from "./components/VideoItems";
 import { useToast } from "hooks/ToastProvider";
 import SettingsModal from "components/SettingsModal";
 import StreamText from "components/StreamText";
+import { useVideoData } from "store/DataContext";
 
 function App() {
   const [url, setUrl] = React.useState("");
+
+  const { setInProgress, currentVideo, fetchVideos } = useVideoData();
+
   const [content, setContent] = React.useState("");
   const [summary, setSummary] = React.useState("");
   const [useCaption, setUseCaption] = React.useState(true);
 
   const { addToast } = useToast();
 
+  React.useEffect(() => {
+    if (currentVideo !== null) {
+      setContent(currentVideo.transcripts || "");
+      setSummary(currentVideo.summary || "");
+    }
+  }, [currentVideo]);
+
   async function handle_transcript() {
     // test_sql();
     // check if select lang, if select, then download vtt directly
     // setGreetMsg(await invoke("run_yt_vtt", { url, lang }));
     console.log(useCaption);
-    if (url.trim().length === 0) return;
     setContent("");
     try {
-      const result_msg = await invoke("run_yt", { url });
+      let parse_url;
+      let input_id = -1;
+      if (currentVideo !== null && currentVideo.transcripts === null) {
+        parse_url = currentVideo.url;
+        input_id = currentVideo.id;
+      } else {
+        if (url.trim().length === 0) return;
+        parse_url = url.trim();
+      }
+      const result_msg = await invoke("run_yt", { url: parse_url, input_id });
+
       addToast({
         message: result_msg as string,
         variant: "success",
         duration: 5000,
       });
+      fetchVideos();
     } catch (error) {
       addToast({
         message: error as string,
@@ -43,10 +64,11 @@ function App() {
   }
 
   async function handle_summary() {
+    if (currentVideo === null || currentVideo.transcripts === null) return;
     try {
       const result_msg = await invoke("run_summary", {
-        context: "",
-        video_id: 1,
+        context: currentVideo.transcripts,
+        video_id: currentVideo.id,
       });
       addToast({
         message: result_msg as string,
@@ -73,8 +95,10 @@ function App() {
   React.useEffect(() => {
     const unlisten = listen("stream", (event) => {
       if (event.payload === "[start]") {
+        setInProgress(true);
         setContent("");
       } else if (event.payload === "[end]") {
+        setInProgress(false);
         addToast({
           message: "数据流完成",
           variant: "success",
@@ -87,8 +111,10 @@ function App() {
 
     const unlisten_summary = listen("summary", (event) => {
       if (event.payload === "[start]") {
+        setInProgress(true);
         setSummary("");
       } else if (event.payload === "[end]") {
+        setInProgress(false);
         addToast({
           message: "数据流完成",
           variant: "success",
@@ -135,11 +161,11 @@ function App() {
             </button>
           </div>
 
-          <div className="flex flex-row justify-between items-stretch w-full overflow-hidden">
+          <div className="flex flex-row justify-between items-stretch w-full overflow-hidden h-full">
             <div className="w-1/2 overflow-y-auto">
               <StreamText content={content} />
             </div>
-            <div className="flex flex-col w-1/2">
+            <div className="flex flex-col w-1/2 h-full">
               <div className="flex bg-zinc-600 py-2 justify-center items-center gap-7">
                 <button
                   onClick={handle_translate}
@@ -160,7 +186,7 @@ function App() {
                   <span>Summary</span>
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto bg-zinc-300">
+              <div className="flex-1 overflow-y-auto bg-zinc-300 h-full">
                 <StreamText content={summary} />
               </div>
             </div>

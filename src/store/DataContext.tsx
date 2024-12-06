@@ -4,6 +4,8 @@ import { VideoData } from "../types/db";
 
 interface VideoDataContextType {
   videos: VideoData[];
+  currentVideo: VideoData | null;
+  updateCurrentVideo: (video_id: number) => void;
   fetchVideos: () => Promise<void>;
   saveVideo: (videoData: Omit<VideoData, "id">) => Promise<VideoData>;
   updateVideo: (
@@ -12,6 +14,9 @@ interface VideoDataContextType {
   ) => Promise<VideoData>;
   deleteVideo: (id: number) => Promise<void>;
   getVideoById: (id: number) => VideoData | undefined;
+
+  inProgress: boolean;
+  setInProgress: (value: boolean) => void;
 }
 
 const VideoDataContext = React.createContext<VideoDataContextType | undefined>(
@@ -22,6 +27,15 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [videos, setVideos] = React.useState<VideoData[]>([]);
+  const [inProgress, setInProgress] = React.useState<boolean>(false);
+  const [currentVideo, setCurrentVideo] = React.useState<VideoData | null>(
+    null,
+  );
+
+  const updateCurrentVideo = (video_id: number) => {
+    const video = videos.find((video) => video.id === video_id);
+    if (video !== undefined) setCurrentVideo(video);
+  };
 
   const fetchVideos = React.useCallback(async () => {
     try {
@@ -92,11 +106,15 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const contextValue = {
     videos,
+    currentVideo,
+    updateCurrentVideo,
     fetchVideos,
     saveVideo,
     updateVideo,
     deleteVideo,
     getVideoById,
+    inProgress,
+    setInProgress,
   };
 
   return (

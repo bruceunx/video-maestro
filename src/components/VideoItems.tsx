@@ -6,17 +6,16 @@ import { useVideoData } from "../store/DataContext";
 import { VideoItemProps } from "../types/db";
 
 const VideoItem = ({ item }: VideoItemProps) => {
-  const isInProgress = false;
-  const currentFile = "";
+  const { currentVideo, updateCurrentVideo, inProgress } = useVideoData();
 
   const onClick = () => {
-    // if (!isInProgress) {
-    //   setCurrentFile(item.url);
-    // }
+    if (!inProgress) {
+      updateCurrentVideo(item.id);
+    }
   };
   return (
     <div
-      className={`rounded-md ${currentFile === item.url ? "bg-zinc-500" : ""} p-1 ${!isInProgress && "hover:cursor-pointer"} `}
+      className={`rounded-md ${currentVideo !== null && currentVideo.id === item.id ? "bg-zinc-500" : ""} p-1 ${!inProgress && "hover:cursor-pointer"} `}
       onClick={onClick}
     >
       <div className="flex flex-row items-center space-x-3">

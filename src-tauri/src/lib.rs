@@ -124,18 +124,20 @@ async fn handle_transcripts(
 }
 
 #[tauri::command(rename_all = "snake_case")]
-async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
+async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<String, String> {
     println!("run yt");
 
     let video_info = get_video_metadata(&app, url).await?;
-    let video_id = db::create_video(
-        app.state(),
-        url.to_string(),
-        video_info.title,
-        video_info.duration,
-        video_info.upload_date,
-    )?;
-
+    let mut video_id = input_id;
+    if video_id == -1 {
+        video_id = db::create_video(
+            app.state(),
+            url.to_string(),
+            video_info.title,
+            video_info.duration,
+            video_info.upload_date,
+        )?;
+    }
     if let Some(lang) = webvtt::get_sub_lang(&app, url).await {
         let vtt_path = webvtt::run_yt_vtt(&app, url, &lang).await?;
         let chunks = webvtt::extract_vtt_chunks(&vtt_path).await?;

@@ -9,7 +9,7 @@ interface StreamTextProps {
 
 const StreamText: React.FC<StreamTextProps> = ({ content }) => {
   return (
-    <div className="prose p-5">
+    <div className="prose p-5 h-full">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
