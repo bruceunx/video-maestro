@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Captions, FileText } from "lucide-react";
+import { Captions, FileText, XIcon } from "lucide-react";
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -18,11 +18,12 @@ function App() {
 
   const [selectedLanguage, setSelectedLanguage] = React.useState<string>("en");
 
-  const { setInProgress, currentVideo, fetchVideos } = useVideoData();
+  const { setInProgress, currentVideo, fetchVideos, deleteVideo } =
+    useVideoData();
 
   const [content, setContent] = React.useState<string>("");
   const [summary, setSummary] = React.useState<string>("");
-  const [auto, setAuto] = React.useState(true);
+  const [auto, setAuto] = React.useState<boolean>(false);
 
   const { addToast } = useToast();
 
@@ -32,6 +33,11 @@ function App() {
       setSummary(currentVideo.summary || "");
     }
   }, [currentVideo]);
+
+  function onDeleteVideo() {
+    if (currentVideo === null) return;
+    deleteVideo(currentVideo.id);
+  }
 
   async function handle_transcript() {
     setContent("");
@@ -85,10 +91,6 @@ function App() {
     }
   }
 
-  const handleChecked = (checked: boolean) => {
-    setAuto(checked);
-  };
-
   React.useEffect(() => {
     const unlisten = listen("stream", (event) => {
       if (event.payload === "[start]") {
@@ -132,7 +134,16 @@ function App() {
     <>
       <div className="flex h-screen w-screen">
         <div className="flex flex-col w-64 h-full bg-zinc-700 text-white justify-stretch">
-          <SettingsModal />
+          <div className="flex justify-between">
+            <SettingsModal />
+            <button
+              className="p-2 rounded-full transition-colors focus:outline-none"
+              onClick={onDeleteVideo}
+            >
+              <XIcon className="w-6 h-6 text-gray-500 hover:text-gray-400 active:text-gray-300" />
+            </button>
+          </div>
+
           <VideoItems />
         </div>
         <div id="main" className="flex flex-col bg-gray-200 w-full">
@@ -159,6 +170,16 @@ function App() {
 
           <div className="flex flex-row justify-between items-stretch w-full overflow-hidden h-full">
             <div className="w-1/2 overflow-y-auto">
+              {currentVideo && (
+                <>
+                  <h2 className="text-center text-xl text-gray-700">
+                    {currentVideo.title}
+                  </h2>
+                  <p className="text-right text-sm pr-2 text-gray-700">
+                    {currentVideo.upload_date}
+                  </p>
+                </>
+              )}
               <StreamText content={content} />
             </div>
             <div className="flex flex-col w-1/2 h-full">
@@ -167,7 +188,7 @@ function App() {
                   selectedLanguage={selectedLanguage}
                   onLanguageChange={setSelectedLanguage}
                 />
-                <CaptionCheckBox handleChecked={handleChecked} />
+                <CaptionCheckBox ischecked={auto} handleChecked={setAuto} />
                 <button
                   onClick={handle_summary}
                   className="flex items-center space-x-2 px-4 py-2 
