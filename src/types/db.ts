@@ -1,8 +1,8 @@
 export interface VideoData {
   id: number;
   url: string;
-  videoTitle: string;
-  timeLength: number;
+  title: string;
+  duration: number;
   transcripts: string;
   translate: string;
   summary: string;

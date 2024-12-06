@@ -22,8 +22,8 @@ pub enum DataBaseError {
 pub struct Video {
     id: i64,
     url: String,
-    title: String,
-    time_length: Option<i64>,
+    pub title: String,
+    duration: u64,
     transcripts: Option<String>,
     translate: Option<String>,
     summary: Option<String>,
@@ -42,7 +42,7 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DataBase, DataBaseError> {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             url TEXT NOT NULL UNIQUE,
             title TEXT,
-            time_length INTEGER,
+            duration INTEGER,
             transcripts TEXT,
             translate TEXT,
             summary TEXT,
@@ -55,11 +55,16 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DataBase, DataBaseError> {
 }
 
 #[tauri::command]
-pub fn create_video(db: State<DataBase>, url: String, title: String) -> Result<Video, String> {
+pub fn create_video(
+    db: State<DataBase>,
+    url: String,
+    title: String,
+    duration: u64,
+) -> Result<Video, String> {
     let db = db.0.lock().map_err(|e| e.to_string())?;
     db.execute(
-        "INSERT INTO Video (url, title) VALUES (?1, ?2)",
-        params![url, title],
+        "INSERT INTO Video (url, title, duration) VALUES (?1, ?2, ?3)",
+        params![url, title, duration],
     )
     .map_err(|e| e.to_string())?;
     let db_id = db.last_insert_rowid();
@@ -67,7 +72,7 @@ pub fn create_video(db: State<DataBase>, url: String, title: String) -> Result<V
         id: db_id,
         url,
         title,
-        time_length: None,
+        duration,
         transcripts: None,
         translate: None,
         summary: None,
@@ -80,7 +85,7 @@ pub fn get_videos(db: State<DataBase>) -> Result<Vec<Video>, String> {
     let db = db.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = db
-        .prepare("SELECT id, url, title, time_length, transcripts, translate, summary from Video")
+        .prepare("SELECT id, url, title, duration, transcripts, translate, summary from Video")
         .map_err(|e| e.to_string())?;
 
     let video_iter = stmt
@@ -89,7 +94,7 @@ pub fn get_videos(db: State<DataBase>) -> Result<Vec<Video>, String> {
                 id: row.get(0)?,
                 url: row.get(1)?,
                 title: row.get(2)?,
-                time_length: row.get(3).ok(),
+                duration: row.get(3)?,
                 transcripts: row.get(4).ok(),
                 translate: row.get(5).ok(),
                 summary: row.get(6).ok(),

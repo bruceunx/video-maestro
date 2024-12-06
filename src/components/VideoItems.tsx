@@ -20,19 +20,19 @@ const VideoItem = ({ item }: VideoItemProps) => {
       onClick={onClick}
     >
       <div className="flex flex-row items-center space-x-3">
-        {item.transcripts.length === 0 ? (
+        {item.transcripts === null || item.transcripts.length === 0 ? (
           <Redo className="text-gray-500" />
         ) : (
           <CheckCircle className="text-green-500" />
         )}
         <p className="text-gray-200">
-          {item.videoTitle.length > 17
-            ? item.videoTitle.substring(0, 17) + "..."
-            : item.videoTitle}
+          {item.title.length > 17
+            ? item.title.substring(0, 17) + "..."
+            : item.title}
         </p>
       </div>
       <div className="flex flex-row justify-between text-sm text-gray-400">
-        <p>{formatTime(item.timeLength)}</p>
+        <p>{formatTime(item.duration * 1000)}</p>
       </div>
     </div>
   );

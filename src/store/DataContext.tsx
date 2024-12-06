@@ -25,7 +25,7 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const fetchVideos = React.useCallback(async () => {
     try {
-      const fetchedVideos = await invoke<VideoData[]>("get_all_videos");
+      const fetchedVideos = await invoke<VideoData[]>("get_videos");
       setVideos(fetchedVideos);
     } catch (error) {
       console.error("Failed to fetch videos:", error);
@@ -84,6 +84,11 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
     },
     [videos],
   );
+
+  React.useEffect(() => {
+    fetchVideos();
+    console.log(videos);
+  }, []);
 
   const contextValue = {
     videos,

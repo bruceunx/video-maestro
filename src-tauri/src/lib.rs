@@ -6,6 +6,13 @@ use tokio::fs;
 mod db;
 mod setting;
 mod whisper;
+use serde::Deserialize;
+
+#[derive(Deserialize, Debug)]
+struct VideoInfo {
+    title: String,
+    duration: u64,
+}
 
 async fn run_ffmpeg(app: tauri::AppHandle) -> String {
     println!("run ffmpeg");
@@ -68,9 +75,46 @@ async fn run_ffmpeg(app: tauri::AppHandle) -> String {
     }
 }
 
+async fn get_video_metadata(app: tauri::AppHandle, url: &str) -> Result<VideoInfo, String> {
+    let mut args = Vec::new();
+    if let Ok(proxy_url) = std::env::var("PROXY_URL") {
+        args.push("--proxy".to_string());
+        args.push(proxy_url);
+    }
+
+    args.push("--dump-json".to_string());
+    args.push(url.to_string());
+
+    let output = app
+        .shell()
+        .sidecar("ytdown")
+        .expect("should find the ytdown!")
+        .args(args)
+        .output()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if output.status.success() {
+        let output_str = std::str::from_utf8(&output.stdout).unwrap();
+        serde_json::from_str::<VideoInfo>(&output_str).map_err(|e| e.to_string())
+    } else {
+        Err("can not find video info from metadata".to_string())
+    }
+}
+
 #[tauri::command(rename_all = "snake_case")]
 async fn run_yt(app: tauri::AppHandle, url: &str) -> Result<String, String> {
     println!("run yt");
+
+    let video_info = get_video_metadata(app.clone(), url).await?;
+    let video = db::create_video(
+        app.state(),
+        url.to_string(),
+        video_info.title,
+        video_info.duration,
+    )?;
+
+    return Ok(video.title);
 
     if let Some(lang) = webvtt::get_sub_lang(&app, url).await {
         return webvtt::run_yt_vtt(app, url, &lang).await;

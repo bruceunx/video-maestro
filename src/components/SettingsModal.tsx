@@ -36,7 +36,7 @@ const SettingsModal: React.FC = () => {
     <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
       <Dialog.Trigger asChild>
         <button
-          className="p-2 rounded-full transition-colors"
+          className="p-2 rounded-full transition-colors focus:outline-none"
           onClick={() => setIsOpen(true)}
         >
           <Settings className="w-6 h-6 text-gray-500 hover:text-gray-400 active:text-gray-300" />
