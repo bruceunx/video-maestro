@@ -109,6 +109,7 @@ function App() {
     });
 
     const unlisten_summary = listen("summary", (event) => {
+      console.log(event.payload);
       if (event.payload === "[start]") {
         setInProgress(true);
         setSummary("");

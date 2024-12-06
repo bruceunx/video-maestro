@@ -1,8 +1,6 @@
-use crate::whisper::chat_stream;
-use anyhow::Result;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
 use tokio::fs::{self, File};
 use tokio::io::{AsyncBufReadExt, BufReader};

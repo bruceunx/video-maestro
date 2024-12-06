@@ -13,6 +13,7 @@
 
 # TODO
 
-- [ ] build front page with tailwind and `radix-ui`
-- [ ] render the markdown in `reactjs`
-- [ ] add choices for snapshot or save the summary and the title to a database
+- [ ] add handle settings in backend
+- [x] build front page with tailwind and `radix-ui`
+- [x] render the markdown in `reactjs`
+- [x] add choices for snapshot or save the summary and the title to a database

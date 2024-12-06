@@ -110,7 +110,7 @@ pub async fn run_summary(
     context: String,
     language: String,
     auto: bool,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let mut lang = language;
     if auto {
         lang = "auto".to_string()
@@ -118,9 +118,14 @@ pub async fn run_summary(
 
     let chunks: Vec<String> = context.split("\n\n").map(|s| s.to_string()).collect();
     let mut summary = Vec::new();
+
+    app.emit("summary", "[start]".to_string())
+        .map_err(|e| e.to_string())?;
     for chunk in chunks {
         summary.push(chat_stream(&app, &chunk, &lang).await?)
     }
+    app.emit("summary", "[end]".to_string())
+        .map_err(|e| e.to_string())?;
 
     let summary_content = summary.join("\n\n");
     db::update_video(
@@ -129,7 +134,7 @@ pub async fn run_summary(
         "summary".to_string(),
         summary_content,
     )?;
-    Ok(())
+    Ok("success".to_string())
 }
 
 pub async fn chat_stream(
