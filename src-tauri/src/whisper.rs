@@ -240,7 +240,7 @@ async fn transcribe_audio(
     }
 }
 
-pub async fn trancript(audio_path: &Path) -> Result<Vec<String>> {
+pub async fn trancript(app: &tauri::AppHandle, audio_path: &Path) -> Result<Vec<String>> {
     let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
     let api_url = std::env::var("GROQ_AUDIO_URL").expect("AUDIO URL is missing!");
     let model_name = std::env::var("AUDIO_MODEL").expect("AUDIO MODEL is missing!");
@@ -252,7 +252,10 @@ pub async fn trancript(audio_path: &Path) -> Result<Vec<String>> {
         let audio_path = entry.path();
         let audio_path_str = audio_path.to_str().unwrap();
         match transcribe_audio(&api_key, audio_path_str, &model_name, &api_url).await {
-            Ok(response) => chunks.push(response.text),
+            Ok(response) => {
+                app.emit("stream", response.text.clone()).unwrap();
+                chunks.push(response.text);
+            }
             Err(_) => continue,
         };
     }

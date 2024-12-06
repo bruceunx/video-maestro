@@ -137,7 +137,6 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<Strin
         )?;
     }
     if let Some(lang) = webvtt::get_sub_lang(&app, url).await {
-        println!("{}", &lang);
         let vtt_path = webvtt::run_yt_vtt(&app, url, &lang).await?;
         let chunks = webvtt::extract_vtt_chunks(&vtt_path).await?;
         handle_transcripts(&app, video_id, chunks).await?;
@@ -181,10 +180,20 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<Strin
 
         if output.status.success() {
             let split_path = run_ffmpeg(&app).await?;
-            let chunks = whisper::trancript(&split_path)
+            app.emit("stream", "[start]".to_string())
+                .map_err(|e| e.to_string())?;
+            let chunks = whisper::trancript(&app, &split_path)
                 .await
                 .map_err(|e| e.to_string())?;
-            handle_transcripts(&app, video_id, chunks).await?;
+            app.emit("stream", "[end]".to_string())
+                .map_err(|e| e.to_string())?;
+            let transcripts = chunks.join("\n\n");
+            db::update_video(
+                app.state(),
+                video_id,
+                "transcripts".to_string(),
+                transcripts,
+            )?;
             return Ok("success".to_string());
         } else {
             let err_message = String::from_utf8_lossy(&output.stderr).to_string();
