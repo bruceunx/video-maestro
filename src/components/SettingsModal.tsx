@@ -1,30 +1,23 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Settings, X, Eye, EyeOff } from "lucide-react";
-import { SettingsType } from "../types/settings";
+import { useSettings } from "store/SettingsProvider";
+import { SettingsType } from "types/settings";
 
 const SettingsModal: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [showApiKey, setShowApiKey] = React.useState(false);
 
-  const [settings, setSettings] = React.useState<SettingsType>({
-    apiKey: "",
-    aiSupplierUrl: "",
-    whisperModelName: "",
-    aiModelName: "",
-  });
+  const { settings: saveSettings, updateSettings } = useSettings();
+  const [settings, setSettings] = React.useState<SettingsType>(saveSettings);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setSettings((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setSettings({ ...settings, [name]: value });
   };
 
   const handleSave = () => {
-    // Implement save logic here
-    console.log("Settings saved:", settings);
+    updateSettings(settings);
     setIsOpen(false);
   };
 
@@ -34,6 +27,10 @@ const SettingsModal: React.FC = () => {
   //     [key]: !prev[key],
   //   }));
   // };
+  //
+  React.useEffect(() => {
+    setSettings({ ...settings, ...saveSettings });
+  }, [saveSettings]);
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
@@ -55,14 +52,14 @@ const SettingsModal: React.FC = () => {
                      p-6 z-50 focus:outline-none animate-content-show"
         >
           <div className="flex justify-between items-center mb-4">
-            <Dialog.Title className="text-xl font-semibold">
+            <Dialog.Title className="text-xl font-semibold focus:no-underline">
               Application Settings
             </Dialog.Title>
             <Dialog.Close
               className="text-gray-500 hover:text-gray-700 
                          transition-colors rounded-full p-1"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 focus:outline-none" />
             </Dialog.Close>
           </div>
 
@@ -121,15 +118,15 @@ const SettingsModal: React.FC = () => {
 
               <div>
                 <label
-                  htmlFor="modelName"
+                  htmlFor="aiModelName"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
                   AI Model Name
                 </label>
                 <input
                   type="text"
-                  id="modelName"
-                  name="modelName"
+                  id="aiModelName"
+                  name="aiModelName"
                   value={settings.aiModelName}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 

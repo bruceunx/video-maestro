@@ -34,6 +34,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const loadSettings = async () => {
     try {
       const storedSettings = (await invoke("load_settings")) as SettingsType;
+      console.log(storedSettings);
       if (storedSettings) {
         setSettings({ ...defaultSettings, ...storedSettings });
       }
@@ -45,7 +46,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   // Update settings and save to Tauri store
   const updateSettings = async (newSettings: Partial<SettingsType>) => {
     const updatedSettings = { ...settings, ...newSettings };
-
     try {
       await invoke("save_settings", { settings: updatedSettings });
       setSettings(updatedSettings);

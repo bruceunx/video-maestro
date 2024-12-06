@@ -4,6 +4,7 @@ use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
 use tokio::fs;
 mod db;
+mod setting;
 mod whisper;
 
 async fn run_ffmpeg(app: tauri::AppHandle) -> String {
@@ -124,6 +125,7 @@ pub fn run() {
     dotenv().ok();
     tauri::Builder::default()
         .setup(|app| {
+            setting::get_config_path(&app.handle());
             let database = db::init_db(app.handle())?;
             app.manage(database);
             Ok(())
@@ -137,6 +139,8 @@ pub fn run() {
             db::get_videos,
             db::update_video,
             db::delete_video,
+            setting::load_settings,
+            setting::save_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
