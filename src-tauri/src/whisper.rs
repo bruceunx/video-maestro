@@ -86,17 +86,42 @@ async fn create_client() -> Result<Client> {
 //     start: f64,
 //     end: f64,
 // }
+//
+//
+//
+fn get_system_prompt(language: &str) -> String {
+    match language {
+        "es" => "Proporciona un resumen conciso en español. Traduce literalmente sin interpretar o modificar el significado original. Mantén la estructura y el tono del texto original lo más fielmente posible.".to_string(),
+        "fr" => "Fournissez un résumé concis en français. Traduisez littéralement sans interpréter ou modifier le sens original. Conservez la structure et le ton du texte original aussi fidèlement que possible.".to_string(),
+        "de" => "Liefern Sie eine prägnante Zusammenfassung auf Deutsch. Übersetzen Sie wörtlich, ohne zu interpretieren oder die ursprüngliche Bedeutung zu verändern. Bewahren Sie Struktur und Ton des Originaltextes so genau wie möglich.".to_string(),
+        "zh" => "提供一个简洁的中文摘要。逐字翻译，不要解释或修改原始含义。尽可能忠实地保留原文的结构和语气。".to_string(),
+        "ar" => "قدم ملخصًا موجزًا باللغة العربية. اترجم حرفيًا دون تفسير أو تعديل المعنى الأصلي. حافظ على بنية ونبرة النص الأصلي بأكبر قدر ممكن من الدقة.".to_string(),
+        "ru" => "Предоставьте краткое резюме на русском языке. Переводите дословно, не интерпретируя и не изменяя исходного значения. Максимально точно сохраняйте структуру и тон оригинального текста.".to_string(),
+        "ja" => "簡潔な日本語の要約を提供してください。元の意味を解釈したり変更したりせず、文字通りに翻訳してください。元のテキストの構造とトーンを可能な限り忠実に保ってください。".to_string(),
+        "en" => "Provide a concise summary in English. Translate literally without interpreting or modifying the original meaning. Maintain the structure and tone of the original text as faithfully as possible.".to_string(),
+        _ => "Provide a concise summary in language from the content without interpreting or modifying the original meaning. Maintain the structure and tone of the original text as faithfully as possible.".to_string(),
+    }
+}
+
 #[tauri::command(rename_all = "snake_case")]
 pub async fn run_summary(
     app: tauri::AppHandle,
     video_id: i64,
     context: String,
+    language: String,
+    auto: bool,
 ) -> Result<(), String> {
+    let mut lang = language;
+    if auto {
+        lang = "auto".to_string()
+    }
+
     let chunks: Vec<String> = context.split("\n\n").map(|s| s.to_string()).collect();
     let mut summary = Vec::new();
     for chunk in chunks {
-        summary.push(chat_stream(&app, &chunk).await?)
+        summary.push(chat_stream(&app, &chunk, &lang).await?)
     }
+
     let summary_content = summary.join("\n\n");
     db::update_video(
         app.state(),
@@ -107,7 +132,11 @@ pub async fn run_summary(
     Ok(())
 }
 
-pub async fn chat_stream(app: &tauri::AppHandle, user_message: &str) -> Result<String, String> {
+pub async fn chat_stream(
+    app: &tauri::AppHandle,
+    user_message: &str,
+    lang: &str,
+) -> Result<String, String> {
     let api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
     let llm_model = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
     let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
@@ -118,7 +147,7 @@ pub async fn chat_stream(app: &tauri::AppHandle, user_message: &str) -> Result<S
         messages: vec![
             Message {
                 role: Role::System,
-                content: "You are a helpful assistant that provides concise summaries. Please summarize the following content:".to_string(),
+                content: get_system_prompt(lang),
             },
             Message {
                 role: Role::User,
@@ -211,13 +240,9 @@ pub async fn trancript(audio_path: &Path) -> Result<Vec<String>> {
     let api_url = std::env::var("GROQ_AUDIO_URL").expect("AUDIO URL is missing!");
     let model_name = std::env::var("AUDIO_MODEL").expect("AUDIO MODEL is missing!");
 
-    // let llm_api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
-    // let llm_model_name = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
-
     let mut dir = fs::read_dir(audio_path).await?;
     let mut chunks = Vec::new();
 
-    // app.emit("stream", "[start]")?;
     while let Some(entry) = dir.next_entry().await? {
         let audio_path = entry.path();
         let audio_path_str = audio_path.to_str().unwrap();
@@ -225,11 +250,7 @@ pub async fn trancript(audio_path: &Path) -> Result<Vec<String>> {
             Ok(response) => chunks.push(response.text),
             Err(_) => continue,
         };
-
-        // app.emit("stream", &text)?;
-        // chat_stream(&app, &api_key, &text, &llm_model_name, &llm_api_url).await?;
     }
-    // app.emit("stream", "[end]")?;
     remove_files_from_directory(audio_path).await?;
 
     Ok(chunks)

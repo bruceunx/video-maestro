@@ -56,17 +56,6 @@ pub async fn extract_vtt_chunks(vtt_file: &Path) -> Result<Vec<String>, String> 
     Ok(chunks)
 }
 
-pub async fn handle_summarize(app: tauri::AppHandle, vtt_file: &Path) -> Result<(), String> {
-    let chunks = extract_vtt_chunks(vtt_file).await?;
-    app.emit("stream", "[start]").map_err(|e| e.to_string())?;
-    for chunk in chunks {
-        chat_stream(&app, &chunk).await.unwrap();
-    }
-    app.emit("stream", "[end]").map_err(|e| e.to_string())?;
-    fs::remove_file(vtt_file).await.map_err(|e| e.to_string())?;
-    Ok(())
-}
-
 pub async fn run_yt_vtt(app: &tauri::AppHandle, url: &str, lang: &str) -> Result<PathBuf, String> {
     println!("run yt download vtt");
     let cache_dir = app.path().cache_dir().unwrap();

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Languages, Captions, FileText } from "lucide-react";
+import { Captions, FileText } from "lucide-react";
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -11,15 +11,18 @@ import { useToast } from "hooks/ToastProvider";
 import SettingsModal from "components/SettingsModal";
 import StreamText from "components/StreamText";
 import { useVideoData } from "store/DataContext";
+import LanguageSelector from "components/LanguageSelector";
 
 function App() {
-  const [url, setUrl] = React.useState("");
+  const [url, setUrl] = React.useState<string>("");
+
+  const [selectedLanguage, setSelectedLanguage] = React.useState<string>("en");
 
   const { setInProgress, currentVideo, fetchVideos } = useVideoData();
 
-  const [content, setContent] = React.useState("");
-  const [summary, setSummary] = React.useState("");
-  const [useCaption, setUseCaption] = React.useState(true);
+  const [content, setContent] = React.useState<string>("");
+  const [summary, setSummary] = React.useState<string>("");
+  const [auto, setAuto] = React.useState(true);
 
   const { addToast } = useToast();
 
@@ -31,10 +34,6 @@ function App() {
   }, [currentVideo]);
 
   async function handle_transcript() {
-    // test_sql();
-    // check if select lang, if select, then download vtt directly
-    // setGreetMsg(await invoke("run_yt_vtt", { url, lang }));
-    console.log(useCaption);
     setContent("");
     try {
       let parse_url;
@@ -69,6 +68,8 @@ function App() {
       const result_msg = await invoke("run_summary", {
         context: currentVideo.transcripts,
         video_id: currentVideo.id,
+        language: selectedLanguage,
+        auto: auto,
       });
       addToast({
         message: result_msg as string,
@@ -84,12 +85,8 @@ function App() {
     }
   }
 
-  async function handle_translate() {
-    console.log("translate");
-  }
-
   const handleChecked = (checked: boolean) => {
-    setUseCaption(checked);
+    setAuto(checked);
   };
 
   React.useEffect(() => {
@@ -149,7 +146,6 @@ function App() {
               onChange={(e) => setUrl(e.currentTarget.value)}
               placeholder="Enter a video url..."
             />
-            <CaptionCheckBox handleChecked={handleChecked} />
             <button
               className="flex items-center space-x-2 px-4 py-2 
                           bg-purple-500 text-white rounded-lg 
@@ -167,15 +163,11 @@ function App() {
             </div>
             <div className="flex flex-col w-1/2 h-full">
               <div className="flex bg-zinc-600 py-2 justify-center items-center gap-7">
-                <button
-                  onClick={handle_translate}
-                  className="flex items-center space-x-2 px-4 py-2 
-                              bg-blue-500 text-white rounded-lg 
-                              hover:bg-blue-600 active:bg-blue-700"
-                >
-                  <Languages className="w-7 h-7" />
-                  <span>Translate</span>
-                </button>
+                <LanguageSelector
+                  selectedLanguage={selectedLanguage}
+                  onLanguageChange={setSelectedLanguage}
+                />
+                <CaptionCheckBox handleChecked={handleChecked} />
                 <button
                   onClick={handle_summary}
                   className="flex items-center space-x-2 px-4 py-2 

@@ -20,7 +20,7 @@ const VideoItem = ({ item }: VideoItemProps) => {
     >
       <div className="flex flex-row items-center space-x-3">
         {item.transcripts === null || item.transcripts.length === 0 ? (
-          <Redo className="text-gray-500" />
+          <Redo className="text-gray-200" />
         ) : (
           <CheckCircle className="text-green-500" />
         )}

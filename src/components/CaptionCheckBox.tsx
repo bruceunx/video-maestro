@@ -9,7 +9,7 @@ const CaptionCheckBox = ({
   return (
     <div className="flex items-center">
       <CheckBox.Root
-        className="rounded-md bg-gray-50 shadow-white w-8 h-8 align-middle mr-2"
+        className="rounded-md bg-gray-50 shadow-white w-6 h-6 align-middle mr-2"
         defaultChecked
         id="use-caption"
         onCheckedChange={handleChecked}
@@ -19,7 +19,7 @@ const CaptionCheckBox = ({
         </CheckBox.Indicator>
       </CheckBox.Root>
       <label htmlFor="use-caption" className="text-gray-100">
-        Use subtitle
+        Auto
       </label>
     </div>
   );
