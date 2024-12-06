@@ -83,6 +83,8 @@ function App() {
         variant: "success",
         duration: 5000,
       });
+
+      fetchVideos();
     } catch (error) {
       addToast({
         message: error as string,

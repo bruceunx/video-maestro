@@ -86,6 +86,7 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await invoke("delete_video", { id });
       setVideos((prevVideos) => prevVideos.filter((video) => video.id !== id));
+      setCurrentVideo(null);
     } catch (error) {
       console.error("Failed to delete video:", error);
       throw error;
