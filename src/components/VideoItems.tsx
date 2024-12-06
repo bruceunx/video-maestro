@@ -1,13 +1,13 @@
 import * as React from "react";
 import { CheckCircle, Redo } from "lucide-react";
 import { formatTime } from "../utils/files";
-import { useData } from "../store/DataContext";
+import { useVideoData } from "../store/DataContext";
 
-import { VideoItemProps, VideoListProps } from "../types/db";
+import { VideoItemProps } from "../types/db";
 
 const VideoItem = ({ item }: VideoItemProps) => {
-  const { item: currentFile } = useData();
   const isInProgress = false;
+  const currentFile = "";
 
   const onClick = () => {
     // if (!isInProgress) {
@@ -38,10 +38,12 @@ const VideoItem = ({ item }: VideoItemProps) => {
   );
 };
 
-const VideoItems = ({ items }: VideoListProps) => {
+const VideoItems = () => {
   const [contentHeight, setContentHeight] = React.useState(
     window.innerHeight - 10,
   );
+
+  const { videos } = useVideoData();
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -64,8 +66,8 @@ const VideoItems = ({ items }: VideoListProps) => {
         e.preventDefault();
       }}
     >
-      {items.map((item, index) => (
-        <VideoItem key={index} item={item} />
+      {videos.map((video, index) => (
+        <VideoItem key={index} item={video} />
       ))}
     </div>
   );
