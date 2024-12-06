@@ -154,7 +154,7 @@ pub async fn chat_stream(app: &tauri::AppHandle, user_message: &str) -> Result<S
                 for choice in response.choices {
                     if let Some(content) = choice.delta.content {
                         summary.push(content.clone());
-                        app.emit("stream", content).map_err(|e| e.to_string())?;
+                        app.emit("summary", content).map_err(|e| e.to_string())?;
                         std::io::stdout().flush().unwrap();
                     }
                 }
