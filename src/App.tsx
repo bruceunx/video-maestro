@@ -12,6 +12,7 @@ import SettingsModal from "components/SettingsModal";
 import StreamText from "components/StreamText";
 import { useVideoData } from "store/DataContext";
 import LanguageSelector from "components/LanguageSelector";
+import { formatDate } from "utils/files";
 
 function App() {
   const [url, setUrl] = React.useState<string>("");
@@ -177,7 +178,7 @@ function App() {
                     {currentVideo.title}
                   </h2>
                   <p className="text-right text-sm pr-2 text-gray-700">
-                    {currentVideo.upload_date}
+                    {formatDate(currentVideo.upload_date)}
                   </p>
                 </>
               )}

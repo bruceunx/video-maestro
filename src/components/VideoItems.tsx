@@ -1,11 +1,12 @@
 import * as React from "react";
 import { CheckCircle, Redo } from "lucide-react";
-import { formatTime } from "../utils/files";
+import { formatTime, formatTimestamp } from "../utils/files";
 import { useVideoData } from "../store/DataContext";
 
 import { VideoItemProps } from "../types/db";
 
 const VideoItem = ({ item }: VideoItemProps) => {
+  console.log(item);
   const { currentVideo, updateCurrentVideo, inProgress } = useVideoData();
 
   const onClick = () => {
@@ -32,6 +33,7 @@ const VideoItem = ({ item }: VideoItemProps) => {
       </div>
       <div className="flex flex-row justify-between text-sm text-gray-400">
         <p>{formatTime(item.duration * 1000)}</p>
+        <p>{formatTimestamp(item.timestamp)}</p>
       </div>
     </div>
   );

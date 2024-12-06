@@ -7,6 +7,7 @@ export interface VideoData {
   transcripts: string;
   translate: string;
   summary: string;
+  timestamp: number;
 }
 
 export interface VideoItemProps {

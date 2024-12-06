@@ -78,7 +78,7 @@ pub fn get_videos(db: State<DataBase>) -> Result<Vec<Video>, String> {
     let db = db.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = db
-        .prepare("SELECT id, url, title, duration, upload_date, transcripts, translate, summary from Video ORDER BY id DESC")
+        .prepare("SELECT id, url, title, duration, upload_date, transcripts, translate, summary, timestamp from Video ORDER BY id DESC")
         .map_err(|e| e.to_string())?;
 
     let video_iter = stmt
