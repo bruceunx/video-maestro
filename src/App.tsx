@@ -19,8 +19,13 @@ function App() {
 
   const [selectedLanguage, setSelectedLanguage] = React.useState<string>("en");
 
-  const { setInProgress, currentVideo, fetchVideos, deleteVideo } =
-    useVideoData();
+  const {
+    setInProgress,
+    currentVideo,
+    fetchVideos,
+    deleteVideo,
+    updateCurrentVideo,
+  } = useVideoData();
 
   const [content, setContent] = React.useState<string>("");
   const [summary, setSummary] = React.useState<string>("");
@@ -41,7 +46,6 @@ function App() {
   }
 
   async function handle_transcript() {
-    setContent("");
     try {
       let parse_url;
       let input_id = -1;
@@ -51,6 +55,7 @@ function App() {
       } else {
         if (url.trim().length === 0) return;
         parse_url = url.trim();
+        updateCurrentVideo(-1);
       }
       const result_msg = await invoke("run_yt", { url: parse_url, input_id });
 
@@ -113,7 +118,6 @@ function App() {
     });
 
     const unlisten_summary = listen("summary", (event) => {
-      console.log(event.payload);
       if (event.payload === "[start]") {
         setInProgress(true);
         setSummary("");
@@ -129,9 +133,16 @@ function App() {
       }
     });
 
+    const unlisten_state = listen("state", (event) => {
+      if (event.payload === "update video") {
+        fetchVideos();
+      }
+    });
+
     return () => {
       unlisten.then((fn) => fn());
       unlisten_summary.then((fn) => fn());
+      unlisten_state.then((fn) => fn());
     };
   }, []);
 

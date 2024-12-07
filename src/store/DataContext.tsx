@@ -41,6 +41,7 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const fetchedVideos = await invoke<VideoData[]>("get_videos");
       setVideos(fetchedVideos);
+      if (fetchedVideos.length > 0) setCurrentVideo(fetchedVideos[0]);
     } catch (error) {
       console.error("Failed to fetch videos:", error);
       throw error;

@@ -135,6 +135,8 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<Strin
             video_info.duration,
             video_info.upload_date,
         )?;
+        app.emit("state", "update video")
+            .map_err(|e| e.to_string())?
     }
     if let Some(lang) = webvtt::get_sub_lang(&app, url).await {
         let vtt_path = webvtt::run_yt_vtt(&app, url, &lang).await?;
