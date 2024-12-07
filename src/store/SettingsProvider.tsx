@@ -4,10 +4,12 @@ import { SettingsType } from "types/settings";
 import { invoke } from "@tauri-apps/api/core";
 
 const defaultSettings: SettingsType = {
-  apiKey: "",
-  aiSupplierUrl: "",
-  aiModelName: "",
-  whisperModelName: "",
+  apiKey: null,
+  aiUrl: null,
+  aiModelName: null,
+  whisperUrl: null,
+  whisperModelName: null,
+  proxy: null,
 };
 
 interface SettingsContextType {

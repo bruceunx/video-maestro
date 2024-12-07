@@ -77,7 +77,7 @@ const SettingsModal: React.FC = () => {
                     type={showApiKey ? "text" : "password"}
                     id="apiKey"
                     name="apiKey"
-                    value={settings.apiKey}
+                    value={settings.apiKey || ""}
                     onChange={handleInputChange}
                     className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm 
                                focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -99,16 +99,16 @@ const SettingsModal: React.FC = () => {
 
               <div>
                 <label
-                  htmlFor="aiSupplierUrl"
+                  htmlFor="aiUrl"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
                   AI Supplier URL
                 </label>
                 <input
                   type="text"
-                  id="aiSupplierUrl"
-                  name="aiSupplierUrl"
-                  value={settings.aiSupplierUrl}
+                  id="aiUrl"
+                  name="aiUrl"
+                  value={settings.aiUrl || ""}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
                              focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -127,11 +127,30 @@ const SettingsModal: React.FC = () => {
                   type="text"
                   id="aiModelName"
                   name="aiModelName"
-                  value={settings.aiModelName}
+                  value={settings.aiModelName || ""}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
                              focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter model name like gpt-4o"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="whisperUrl"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Whisper Supplier URL
+                </label>
+                <input
+                  type="text"
+                  id="whisperUrl"
+                  name="whisperUrl"
+                  value={settings.whisperUrl || ""}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+                             focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter AI supplier URL"
                 />
               </div>
 
@@ -146,11 +165,30 @@ const SettingsModal: React.FC = () => {
                   type="text"
                   id="whisperModelName"
                   name="whisperModelName"
-                  value={settings.whisperModelName}
+                  value={settings.whisperModelName || ""}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
                              focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter whisper model name"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="proxy"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Proxy
+                </label>
+                <input
+                  type="text"
+                  id="proxy"
+                  name="proxy"
+                  value={settings.proxy || ""}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+                             focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter AI supplier URL"
                 />
               </div>
             </div>

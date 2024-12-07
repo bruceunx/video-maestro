@@ -1,3 +1,4 @@
+use super::setting;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tauri::Manager;
@@ -68,7 +69,7 @@ pub async fn run_yt_vtt(app: &tauri::AppHandle, url: &str, lang: &str) -> Result
     let temp_path_str = temp_path.to_str().unwrap();
 
     let mut args = Vec::new();
-    if let Ok(proxy_url) = std::env::var("PROXY_URL") {
+    if let Some(proxy_url) = setting::get_proxy(app) {
         args.push("--proxy".to_string());
         args.push(proxy_url);
     }
@@ -104,7 +105,7 @@ pub async fn run_yt_vtt(app: &tauri::AppHandle, url: &str, lang: &str) -> Result
 pub async fn get_sub_lang(app: &tauri::AppHandle, url: &str) -> Option<String> {
     println!("get_sub_lang");
     let mut args = Vec::new();
-    if let Ok(proxy_url) = std::env::var("PROXY_URL") {
+    if let Some(proxy_url) = setting::get_proxy(app) {
         args.push("--proxy".to_string());
         args.push(proxy_url);
     }

@@ -11,6 +11,7 @@ use tokio::fs::{self, File};
 use tokio::io::AsyncReadExt;
 
 use super::db;
+use super::setting;
 
 // define the transcription struct with only text in my interest
 #[derive(Debug, Deserialize)]
@@ -69,10 +70,10 @@ pub async fn remove_files_from_directory(dir_path: &Path) -> Result<()> {
     Ok(())
 }
 
-async fn create_client() -> Result<Client> {
-    let client = match std::env::var("PROXY_URL") {
-        Ok(proxy_url) => Client::builder().proxy(Proxy::https(proxy_url)?).build()?,
-        Err(_) => Client::builder().build()?,
+async fn create_client(app: &tauri::AppHandle) -> Result<Client> {
+    let client = match setting::get_proxy(app) {
+        Some(proxy_url) => Client::builder().proxy(Proxy::https(proxy_url)?).build()?,
+        None => Client::builder().build()?,
     };
     Ok(client)
 }
@@ -142,11 +143,19 @@ pub async fn chat_stream(
     user_message: &str,
     lang: &str,
 ) -> Result<String, String> {
-    let api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
-    let llm_model = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
-    let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
+    let settings_value = setting::get_settings(app);
 
-    let client = create_client().await.map_err(|e| e.to_string())?;
+    let (api_url, llm_model, api_key) = match settings_value {
+        Some(setting::AppSettings {
+            ai_url: Some(ai_url),
+            ai_model_name: Some(ai_model_name),
+            api_key: Some(api_key),
+            ..
+        }) => (ai_url, ai_model_name, api_key),
+        _ => return Err("no api settings found".to_string()),
+    };
+
+    let client = create_client(app).await.map_err(|e| e.to_string())?;
 
     let request = ChatRequest {
         messages: vec![
@@ -200,12 +209,13 @@ pub async fn chat_stream(
 }
 
 async fn transcribe_audio(
+    app: &tauri::AppHandle,
     api_key: &str,
     audio_path: &str,
     audio_model: &str,
     api_url: &str,
 ) -> Result<TranscriptionResponse> {
-    let client = create_client().await?;
+    let client = create_client(app).await?;
     let path = Path::new(audio_path);
     let mut file = File::open(path).await?;
     let mut buffer = Vec::new();
@@ -240,18 +250,26 @@ async fn transcribe_audio(
     }
 }
 
-pub async fn trancript(app: &tauri::AppHandle, audio_path: &Path) -> Result<Vec<String>> {
-    let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
-    let api_url = std::env::var("GROQ_AUDIO_URL").expect("AUDIO URL is missing!");
-    let model_name = std::env::var("AUDIO_MODEL").expect("AUDIO MODEL is missing!");
+pub async fn trancript(app: &tauri::AppHandle, audio_path: &Path) -> Result<Vec<String>, String> {
+    let settings_value = setting::get_settings(app);
 
-    let mut dir = fs::read_dir(audio_path).await?;
+    let (api_url, model_name, api_key) = match settings_value {
+        Some(setting::AppSettings {
+            whisper_url: Some(whisper_url),
+            whisper_model_name: Some(whisper_model_name),
+            api_key: Some(api_key),
+            ..
+        }) => (whisper_url, whisper_model_name, api_key),
+        _ => return Err("no api settings found".to_string()),
+    };
+
+    let mut dir = fs::read_dir(audio_path).await.map_err(|e| e.to_string())?;
     let mut chunks = Vec::new();
 
-    while let Some(entry) = dir.next_entry().await? {
+    while let Some(entry) = dir.next_entry().await.map_err(|e| e.to_string())? {
         let audio_path = entry.path();
         let audio_path_str = audio_path.to_str().unwrap();
-        match transcribe_audio(&api_key, audio_path_str, &model_name, &api_url).await {
+        match transcribe_audio(app, &api_key, audio_path_str, &model_name, &api_url).await {
             Ok(response) => {
                 app.emit("stream", response.text.clone()).unwrap();
                 chunks.push(response.text);
@@ -259,7 +277,9 @@ pub async fn trancript(app: &tauri::AppHandle, audio_path: &Path) -> Result<Vec<
             Err(_) => continue,
         };
     }
-    remove_files_from_directory(audio_path).await?;
+    remove_files_from_directory(audio_path)
+        .await
+        .map_err(|e| e.to_string())?;
 
     Ok(chunks)
 }

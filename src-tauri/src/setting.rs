@@ -6,10 +6,12 @@ use tauri::Manager;
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
-    pub api_key: String,
-    pub ai_supplier_url: String,
-    pub ai_model_name: String,
-    pub whisper_model_name: String,
+    pub api_key: Option<String>,
+    pub ai_url: Option<String>,
+    pub ai_model_name: Option<String>,
+    pub whisper_url: Option<String>,
+    pub whisper_model_name: Option<String>,
+    pub proxy: Option<String>,
 }
 
 pub fn get_config_path(app: &tauri::AppHandle) -> PathBuf {
@@ -21,6 +23,28 @@ pub fn get_config_path(app: &tauri::AppHandle) -> PathBuf {
     fs::create_dir_all(&path).expect("Faile to create the config folder");
     path.push("settings.json");
     path
+}
+
+pub fn get_proxy(app: &tauri::AppHandle) -> Option<String> {
+    let path = get_config_path(&app);
+    if !path.exists() {
+        return None;
+    } else {
+        let contents = fs::read_to_string(path).ok()?;
+        let setting: AppSettings = serde_json::from_str(&contents).ok()?;
+        setting.proxy
+    }
+}
+
+pub fn get_settings(app: &tauri::AppHandle) -> Option<AppSettings> {
+    let path = get_config_path(&app);
+    if !path.exists() {
+        return None;
+    } else {
+        let contents = fs::read_to_string(path).ok()?;
+        let setting: AppSettings = serde_json::from_str(&contents).ok()?;
+        Some(setting)
+    }
 }
 
 #[tauri::command]

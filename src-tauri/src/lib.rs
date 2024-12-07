@@ -78,7 +78,7 @@ async fn run_ffmpeg(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 
 async fn get_video_metadata(app: &tauri::AppHandle, url: &str) -> Result<VideoInfo, String> {
     let mut args = Vec::new();
-    if let Ok(proxy_url) = std::env::var("PROXY_URL") {
+    if let Some(proxy_url) = setting::get_proxy(app) {
         args.push("--proxy".to_string());
         args.push(proxy_url);
     }
@@ -148,7 +148,7 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<Strin
         let temp_path_str = temp_path.to_str().unwrap();
 
         let mut args = Vec::new();
-        if let Ok(proxy_url) = std::env::var("PROXY_URL") {
+        if let Some(proxy_url) = setting::get_proxy(&app) {
             args.push("--proxy".to_string());
             args.push(proxy_url);
         }
@@ -182,9 +182,7 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<Strin
             let split_path = run_ffmpeg(&app).await?;
             app.emit("stream", "[start]".to_string())
                 .map_err(|e| e.to_string())?;
-            let chunks = whisper::trancript(&app, &split_path)
-                .await
-                .map_err(|e| e.to_string())?;
+            let chunks = whisper::trancript(&app, &split_path).await?;
             app.emit("stream", "[end]".to_string())
                 .map_err(|e| e.to_string())?;
             let transcripts = chunks.join("\n\n");
