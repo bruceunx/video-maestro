@@ -1,25 +1,33 @@
+import * as React from "react";
 import * as CheckBox from "@radix-ui/react-checkbox";
-import { CheckIcon } from "@radix-ui/react-icons";
+import { Check } from "lucide-react";
 
-const CaptionCheckBox = ({
+interface CaptionCheckBoxProps {
+  ischecked: boolean;
+  handleChecked: (value: boolean) => void;
+}
+
+const CaptionCheckBox: React.FC<CaptionCheckBoxProps> = ({
+  ischecked,
   handleChecked,
-}: {
-  handleChecked: (checked: boolean) => void;
 }) => {
+  const onCheckedChange = (value: boolean) => {
+    handleChecked(value);
+  };
   return (
     <div className="flex items-center">
       <CheckBox.Root
-        className="rounded-md bg-gray-50 shadow-white w-8 h-8 align-middle mr-2"
-        defaultChecked
+        className="rounded-md bg-gray-50 shadow-white w-6 h-6 align-middle mr-2"
+        checked={ischecked}
         id="use-caption"
-        onCheckedChange={handleChecked}
+        onCheckedChange={onCheckedChange}
       >
         <CheckBox.Indicator>
-          <CheckIcon className="text-gray-500 w-full h-full p-1" />
+          {ischecked && <Check className="text-gray-500 w-full h-full p-1" />}
         </CheckBox.Indicator>
       </CheckBox.Root>
       <label htmlFor="use-caption" className="text-gray-100">
-        Use subtitle
+        Auto
       </label>
     </div>
   );

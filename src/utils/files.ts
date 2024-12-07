@@ -14,3 +14,12 @@ export function formatTime(millis: number): string {
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
   }
 }
+
+export function formatTimestamp(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+
+  return date.toISOString().slice(0, 10);
+}
+export function formatDate(dateString: string): string {
+  return `${dateString.slice(0, 4)}-${dateString.slice(4, 6)}-${dateString.slice(6)}`;
+}

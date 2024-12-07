@@ -1,6 +1,5 @@
 import * as React from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { Captions, FileText, XIcon } from "lucide-react";
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -8,60 +7,150 @@ import { listen } from "@tauri-apps/api/event";
 import "./App.css";
 import CaptionCheckBox from "./components/CaptionCheckBox";
 import VideoItems from "./components/VideoItems";
-import { VideoData } from "./types/db";
-import { videoList } from "./data";
-
-const StreamText = ({ content }: { content: string }) => {
-  return (
-    <div>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-    </div>
-  );
-};
+import { useToast } from "hooks/ToastProvider";
+import SettingsModal from "components/SettingsModal";
+import StreamText from "components/StreamText";
+import { useVideoData } from "store/DataContext";
+import LanguageSelector from "components/LanguageSelector";
+import { formatDate } from "utils/files";
 
 function App() {
-  const [progressState, setProgress] = React.useState("");
-  const [url, setUrl] = React.useState("");
-  const [content, setContent] = React.useState("");
-  const [useCaption, setUseCaption] = React.useState(true);
+  const [url, setUrl] = React.useState<string>("");
 
-  async function test_sql(): Promise<number> {
-    const video: VideoData = await invoke("create_video", {
-      url: "http://example1.com",
-      title: "just test video link",
-    });
-    console.log(video);
-    return video.id;
+  const [selectedLanguage, setSelectedLanguage] = React.useState<string>("en");
+
+  const {
+    setInProgress,
+    currentVideo,
+    fetchVideos,
+    deleteVideo,
+    updateCurrentVideo,
+    inProgress,
+  } = useVideoData();
+
+  const [content, setContent] = React.useState<string>("");
+  const [summary, setSummary] = React.useState<string>("");
+  const [auto, setAuto] = React.useState<boolean>(false);
+
+  const { addToast } = useToast();
+
+  React.useEffect(() => {
+    if (currentVideo !== null) {
+      setContent(currentVideo.transcripts || "");
+      setSummary(currentVideo.summary || "");
+    } else {
+      setContent("");
+      setSummary("");
+    }
+  }, [currentVideo]);
+
+  function onDeleteVideo() {
+    if (currentVideo === null) return;
+    deleteVideo(currentVideo.id);
   }
 
-  async function parse_and_summarize() {
-    test_sql();
-    // check if select lang, if select, then download vtt directly
-    // setGreetMsg(await invoke("run_yt_vtt", { url, lang }));
-    console.log(useCaption);
-    if (url.trim().length === 0) return;
-    setContent("");
-    setProgress("");
+  async function handle_transcript() {
     try {
-      const result_msg = await invoke("run_yt", { url });
-      setProgress(result_msg as string);
+      let parse_url;
+      let input_id = -1;
+      if (currentVideo !== null && currentVideo.transcripts === null) {
+        parse_url = currentVideo.url;
+        input_id = currentVideo.id;
+      } else {
+        if (url.trim().length === 0) return;
+        parse_url = url.trim();
+        updateCurrentVideo(-1);
+      }
+      setInProgress(true);
+      await invoke("run_yt", { url: parse_url, input_id });
+      fetchVideos();
     } catch (error) {
-      setProgress(`Error from ${error}`);
+      const error_msg = error as string;
+      if (error_msg.includes("403")) {
+        addToast({
+          message: "please try again later with this video platform!!!",
+          variant: "error",
+          duration: 10000,
+        });
+      } else {
+        addToast({
+          message: error as string,
+          variant: "error",
+          duration: 5000,
+        });
+      }
+    } finally {
+      setInProgress(false);
     }
   }
 
-  const handleChecked = (checked: boolean) => {
-    setUseCaption(checked);
-    console.log(checked);
-  };
+  async function handle_summary() {
+    if (currentVideo === null || currentVideo.transcripts === null) return;
+    try {
+      setInProgress(true);
+      await invoke("run_summary", {
+        context: currentVideo.transcripts,
+        video_id: currentVideo.id,
+        language: selectedLanguage,
+        auto: auto,
+      });
+
+      fetchVideos();
+    } catch (error) {
+      addToast({
+        message: error as string,
+        variant: "error",
+        duration: 5000,
+      });
+    } finally {
+      setInProgress(false);
+    }
+  }
 
   React.useEffect(() => {
     const unlisten = listen("stream", (event) => {
-      setContent((prevContent) => prevContent + event.payload);
+      if (event.payload === "[start]") {
+        setInProgress(true);
+        setContent("");
+        setSummary("");
+      } else if (event.payload === "[end]") {
+        setInProgress(false);
+        addToast({
+          message: "数据流完成",
+          variant: "success",
+          duration: 5000,
+        });
+      } else {
+        setContent((prevContent) => prevContent + event.payload);
+      }
+    });
+
+    const unlisten_summary = listen("summary", (event) => {
+      if (event.payload === "[start]") {
+        setInProgress(true);
+        setSummary("");
+      } else if (event.payload === "[end]") {
+        setInProgress(false);
+        addToast({
+          message: "数据流完成",
+          variant: "success",
+          duration: 5000,
+        });
+      } else {
+        setSummary((prevContent) => prevContent + event.payload);
+      }
+    });
+
+    const unlisten_state = listen("state", (event) => {
+      if (event.payload === "update video") {
+        fetchVideos();
+      }
     });
 
     return () => {
       unlisten.then((fn) => fn());
+      unlisten_summary.then((fn) => fn());
+      unlisten_state.then((fn) => fn());
     };
   }, []);
 
@@ -69,31 +158,78 @@ function App() {
     <>
       <div className="flex h-screen w-screen">
         <div className="flex flex-col w-64 h-full bg-zinc-700 text-white justify-stretch">
-          <VideoItems items={videoList} />
+          <div className="flex justify-between">
+            <SettingsModal />
+            <button
+              className="p-2 rounded-full transition-colors focus:outline-none"
+              onClick={onDeleteVideo}
+            >
+              <XIcon className="w-6 h-6 text-gray-500 hover:text-gray-400 active:text-gray-300" />
+            </button>
+          </div>
+
+          <VideoItems />
         </div>
-        <div id="main" className="flex flex-col bg-zinc-500 w-full">
+        <div id="main" className="flex flex-col bg-gray-200 w-full">
           <div
             id="header-bar"
             className="flex flex-row justify-center space-x-10 w-full mx-auto py-2 bg-zinc-700"
           >
             <input
               id="url-input"
-              className="p-2 rounded-md w-72"
+              className="p-2 rounded-md w-1/2 min-w-96"
               onChange={(e) => setUrl(e.currentTarget.value)}
               placeholder="Enter a video url..."
             />
-            <CaptionCheckBox handleChecked={handleChecked} />
             <button
-              type="submit"
-              className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-700 active:bg-blue-900"
-              onClick={parse_and_summarize}
+              className="flex items-center space-x-2 px-4 py-2
+                          bg-purple-500 text-white rounded-lg
+                          hover:bg-purple-600 active:bg-purple-700 disabled:bg-purple-300 disabled:text-gray-500 disabled:cursor-default"
+              onClick={handle_transcript}
+              disabled={inProgress}
             >
-              Summarize
+              <Captions className="w-7 h-7" />
+              <span>Transcripts</span>
             </button>
           </div>
 
-          <p>{progressState}</p>
-          <StreamText content={content} />
+          <div className="flex flex-row justify-between items-stretch w-full overflow-hidden h-full">
+            <div className="w-1/2 overflow-y-auto h-full">
+              {currentVideo && (
+                <>
+                  <h2 className="text-center text-xl text-gray-700">
+                    {currentVideo.title}
+                  </h2>
+                  <p className="text-right text-sm pr-2 text-gray-700">
+                    {formatDate(currentVideo.upload_date)}
+                  </p>
+                </>
+              )}
+              <StreamText content={content} />
+            </div>
+            <div className="flex flex-col w-1/2 h-full">
+              <div className="flex bg-zinc-600 py-2 justify-center items-center gap-7">
+                <LanguageSelector
+                  selectedLanguage={selectedLanguage}
+                  onLanguageChange={setSelectedLanguage}
+                />
+                <CaptionCheckBox ischecked={auto} handleChecked={setAuto} />
+                <button
+                  onClick={handle_summary}
+                  className="flex items-center space-x-2 px-4 py-2 
+                              bg-green-500 text-white rounded-lg 
+                              hover:bg-green-600 active:bg-green-700 disabled:bg-green-300 disabled:text-gray-500 disabled:cursor-default"
+                  disabled={inProgress}
+                >
+                  <FileText className="w-7 h-7" />
+                  <span>Summary</span>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto bg-zinc-300 h-full">
+                <StreamText content={summary} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>

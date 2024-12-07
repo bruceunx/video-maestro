@@ -23,7 +23,8 @@ pub struct Video {
     id: i64,
     url: String,
     title: String,
-    time_length: Option<i64>,
+    duration: u64,
+    upload_date: String,
     transcripts: Option<String>,
     translate: Option<String>,
     summary: Option<String>,
@@ -41,8 +42,9 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DataBase, DataBaseError> {
         "CREATE TABLE IF NOT EXISTS Video (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             url TEXT NOT NULL UNIQUE,
-            title TEXT,
-            time_length INTEGER,
+            title TEXT NOT NULL,
+            duration INTEGER NOT NULL,
+            upload_date TEXT NOT NULL,
             transcripts TEXT,
             translate TEXT,
             summary TEXT,
@@ -54,25 +56,21 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DataBase, DataBaseError> {
     Ok(DataBase(Mutex::new(connection)))
 }
 
-#[tauri::command]
-pub fn create_video(db: State<DataBase>, url: String, title: String) -> Result<Video, String> {
+pub fn create_video(
+    db: State<DataBase>,
+    url: String,
+    title: String,
+    duration: u64,
+    upload_date: String,
+) -> Result<i64, String> {
     let db = db.0.lock().map_err(|e| e.to_string())?;
     db.execute(
-        "INSERT INTO Video (url, title) VALUES (?1, ?2)",
-        params![url, title],
+        "INSERT INTO Video (url, title, duration, upload_date) VALUES (?1, ?2, ?3, ?4)",
+        params![url, title, duration, upload_date],
     )
     .map_err(|e| e.to_string())?;
     let db_id = db.last_insert_rowid();
-    Ok(Video {
-        id: db_id,
-        url,
-        title,
-        time_length: None,
-        transcripts: None,
-        translate: None,
-        summary: None,
-        timestamp: None,
-    })
+    Ok(db_id)
 }
 
 #[tauri::command]
@@ -80,7 +78,7 @@ pub fn get_videos(db: State<DataBase>) -> Result<Vec<Video>, String> {
     let db = db.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = db
-        .prepare("SELECT * from Video")
+        .prepare("SELECT id, url, title, duration, upload_date, transcripts, translate, summary, timestamp from Video ORDER BY id DESC")
         .map_err(|e| e.to_string())?;
 
     let video_iter = stmt
@@ -89,11 +87,12 @@ pub fn get_videos(db: State<DataBase>) -> Result<Vec<Video>, String> {
                 id: row.get(0)?,
                 url: row.get(1)?,
                 title: row.get(2)?,
-                time_length: row.get(3).ok(),
-                transcripts: row.get(4).ok(),
-                translate: row.get(5).ok(),
-                summary: row.get(6).ok(),
-                timestamp: row.get(7).ok(),
+                duration: row.get(3)?,
+                upload_date: row.get(4)?,
+                transcripts: row.get(5).ok(),
+                translate: row.get(6).ok(),
+                summary: row.get(7).ok(),
+                timestamp: row.get(8).ok(),
             })
         })
         .map_err(|e| e.to_string())?;
@@ -105,7 +104,6 @@ pub fn get_videos(db: State<DataBase>) -> Result<Vec<Video>, String> {
     Ok(videos)
 }
 
-#[tauri::command]
 pub fn update_video(
     db: State<DataBase>,
     id: i64,

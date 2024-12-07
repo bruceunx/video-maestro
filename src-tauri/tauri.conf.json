@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "newscenter",
+  "productName": "video_manager",
   "version": "0.1.0",
   "identifier": "pylogic.net",
   "build": {
@@ -12,10 +12,10 @@
   "app": {
     "windows": [
       {
-        "title": "newscenter",
-        "width": 1000,
-        "height": 700,
-        "minWidth": 800,
+        "title": "video manager",
+        "width": 1800,
+        "height": 1000,
+        "minWidth": 1000,
         "minHeight": 600
       }
     ],
