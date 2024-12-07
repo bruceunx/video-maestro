@@ -1,4 +1,4 @@
-use newscenter_lib::webvtt;
+use videomaestro_lib::webvtt;
 
 #[tokio::main]
 async fn main() {
