@@ -71,11 +71,20 @@ function App() {
       });
       fetchVideos();
     } catch (error) {
-      addToast({
-        message: error as string,
-        variant: "error",
-        duration: 5000,
-      });
+      const error_msg = error as string;
+      if (error_msg.includes("403")) {
+        addToast({
+          message: "please try again later with this video platform!!!",
+          variant: "error",
+          duration: 10000,
+        });
+      } else {
+        addToast({
+          message: error as string,
+          variant: "error",
+          duration: 5000,
+        });
+      }
     } finally {
       setInProgress(false);
     }
