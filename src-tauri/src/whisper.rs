@@ -112,7 +112,7 @@ pub async fn run_summary(
     context: String,
     language: String,
     auto: bool,
-) -> Result<String, String> {
+) -> Result<(), String> {
     let mut lang = language;
     if auto {
         lang = "auto".to_string()
@@ -136,7 +136,7 @@ pub async fn run_summary(
         "summary".to_string(),
         summary_content,
     )?;
-    Ok("success".to_string())
+    Ok(())
 }
 
 pub async fn chat_stream(

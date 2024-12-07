@@ -190,7 +190,7 @@ async fn download_with_retries(
 }
 
 #[tauri::command(rename_all = "snake_case")]
-async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<String, String> {
+async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), String> {
     let mut video_id = input_id;
     if video_id == -1 {
         let video_info = get_video_metadata(&app, url).await?;
@@ -208,7 +208,6 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<Strin
         let vtt_path = webvtt::run_yt_vtt(&app, url, &lang).await?;
         let chunks = webvtt::extract_vtt_chunks(&vtt_path).await?;
         handle_transcripts(&app, video_id, chunks).await?;
-        return Ok("success".to_string());
     } else {
         // most vulnerable part with yt-dlp
         download_with_retries(&app, url, 5).await?;
@@ -226,8 +225,9 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<Strin
             "transcripts".to_string(),
             transcripts,
         )?;
-        return Ok("success".to_string());
     }
+
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -62,13 +62,7 @@ function App() {
         updateCurrentVideo(-1);
       }
       setInProgress(true);
-      const result_msg = await invoke("run_yt", { url: parse_url, input_id });
-
-      addToast({
-        message: result_msg as string,
-        variant: "success",
-        duration: 5000,
-      });
+      await invoke("run_yt", { url: parse_url, input_id });
       fetchVideos();
     } catch (error) {
       const error_msg = error as string;
@@ -94,16 +88,11 @@ function App() {
     if (currentVideo === null || currentVideo.transcripts === null) return;
     try {
       setInProgress(true);
-      const result_msg = await invoke("run_summary", {
+      await invoke("run_summary", {
         context: currentVideo.transcripts,
         video_id: currentVideo.id,
         language: selectedLanguage,
         auto: auto,
-      });
-      addToast({
-        message: result_msg as string,
-        variant: "success",
-        duration: 5000,
       });
 
       fetchVideos();
