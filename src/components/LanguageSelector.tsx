@@ -9,13 +9,14 @@ interface Language {
 
 const LANGUAGES: Language[] = [
   { code: "en", name: "English" },
+  { code: "zh", name: "中文" },
+  { code: "zh-TW", name: "中文(繁體)" },
+  { code: "ja", name: "日本語" },
   { code: "es", name: "Español" },
   { code: "fr", name: "Français" },
   { code: "de", name: "Deutsch" },
-  { code: "zh", name: "中文" },
   { code: "ar", name: "العربية" },
   { code: "ru", name: "Русский" },
-  { code: "ja", name: "日本語" },
 ];
 
 interface LanguageSelectorProps {

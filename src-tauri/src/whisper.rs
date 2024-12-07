@@ -96,6 +96,7 @@ fn get_system_prompt(language: &str) -> String {
         "fr" => "Fournissez un résumé concis en français. Traduisez littéralement sans interpréter ou modifier le sens original. Conservez la structure et le ton du texte original aussi fidèlement que possible.".to_string(),
         "de" => "Liefern Sie eine prägnante Zusammenfassung auf Deutsch. Übersetzen Sie wörtlich, ohne zu interpretieren oder die ursprüngliche Bedeutung zu verändern. Bewahren Sie Struktur und Ton des Originaltextes so genau wie möglich.".to_string(),
         "zh" => "提供一个简洁的中文摘要。逐字翻译，不要解释或修改原始含义。尽可能忠实地保留原文的结构和语气。".to_string(),
+        "zh-TW" => "提供一個簡潔的繁體中文摘要。逐字翻譯，不要解釋或修改原始含義。盡可能忠實地保留原文的結構和語氣。".to_string(),
         "ar" => "قدم ملخصًا موجزًا باللغة العربية. اترجم حرفيًا دون تفسير أو تعديل المعنى الأصلي. حافظ على بنية ونبرة النص الأصلي بأكبر قدر ممكن من الدقة.".to_string(),
         "ru" => "Предоставьте краткое резюме на русском языке. Переводите дословно, не интерпретируя и не изменяя исходного значения. Максимально точно сохраняйте структуру и тон оригинального текста.".to_string(),
         "ja" => "簡潔な日本語の要約を提供してください。元の意味を解釈したり変更したりせず、文字通りに翻訳してください。元のテキストの構造とトーンを可能な限り忠実に保ってください。".to_string(),
