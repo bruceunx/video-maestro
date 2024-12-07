@@ -123,6 +123,72 @@ async fn handle_transcripts(
     Ok(())
 }
 
+async fn download_with_retries(
+    app: &tauri::AppHandle,
+    url: &str,
+    max_retries: usize,
+) -> Result<(), String> {
+    let cache_dir = app.path().cache_dir().unwrap();
+    let temp_path = cache_dir.join("newscenter").join("temp.wav");
+    let temp_path_str = temp_path.to_str().unwrap();
+    let mut args = Vec::new();
+
+    if let Some(proxy_url) = setting::get_proxy(app) {
+        args.push("--proxy".to_string());
+        args.push(proxy_url);
+    }
+
+    let standard_args = vec![
+        "--force-overwrites",
+        "-x",
+        "-f",
+        "worstaudio[ext=webm]",
+        "--extract-audio",
+        "--audio-format",
+        "wav",
+        "--postprocessor-args",
+        "-ar 16000 -ac 1",
+        "-o",
+    ];
+
+    args.extend(standard_args.into_iter().map(String::from));
+    args.push(temp_path_str.to_string());
+    args.push(url.to_string());
+
+    for attempt in 0..max_retries {
+        match app
+            .shell()
+            .sidecar("ytdown")
+            .expect("should find the ytdown!")
+            .args(args.clone())
+            .output()
+            .await
+        {
+            Ok(output) => {
+                if output.status.success() {
+                    return Ok(());
+                } else {
+                    if attempt < max_retries - 1 {
+                        tokio::time::sleep(std::time::Duration::from_secs(
+                            2 * (attempt + 1) as u64,
+                        ))
+                        .await;
+                    }
+                }
+            }
+            Err(_) => {
+                if attempt < max_retries - 1 {
+                    tokio::time::sleep(std::time::Duration::from_secs(2 * (attempt + 1) as u64))
+                        .await;
+                }
+            }
+        }
+    }
+
+    // If all retries fail
+    Err("Failed to download and process after maximum retries".to_string())
+}
+
 #[tauri::command(rename_all = "snake_case")]
 async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<String, String> {
     let mut video_id = input_id;
@@ -144,61 +210,23 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<Strin
         handle_transcripts(&app, video_id, chunks).await?;
         return Ok("success".to_string());
     } else {
-        let cache_dir = app.path().cache_dir().unwrap();
+        // most vulnerable part with yt-dlp
+        download_with_retries(&app, url, 5).await?;
 
-        let temp_path = cache_dir.join("newscenter").join("temp.wav");
-        let temp_path_str = temp_path.to_str().unwrap();
-
-        let mut args = Vec::new();
-        if let Some(proxy_url) = setting::get_proxy(&app) {
-            args.push("--proxy".to_string());
-            args.push(proxy_url);
-        }
-
-        let standard_args = vec![
-            "--force-overwrites",
-            "-x",
-            "-f",
-            "worstaudio[ext=webm]",
-            "--extract-audio",
-            "--audio-format",
-            "wav",
-            "--postprocessor-args",
-            "-ar 16000 -ac 1",
-            "-o",
-        ];
-        args.extend(standard_args.into_iter().map(String::from));
-        args.push(temp_path_str.to_string());
-        args.push(url.to_string());
-
-        let output = app
-            .shell()
-            .sidecar("ytdown")
-            .expect("should find the ytdown!")
-            .args(args)
-            .output()
-            .await
+        let split_path = run_ffmpeg(&app).await?;
+        app.emit("stream", "[start]".to_string())
             .map_err(|e| e.to_string())?;
-
-        if output.status.success() {
-            let split_path = run_ffmpeg(&app).await?;
-            app.emit("stream", "[start]".to_string())
-                .map_err(|e| e.to_string())?;
-            let chunks = whisper::trancript(&app, &split_path).await?;
-            app.emit("stream", "[end]".to_string())
-                .map_err(|e| e.to_string())?;
-            let transcripts = chunks.join("\n\n");
-            db::update_video(
-                app.state(),
-                video_id,
-                "transcripts".to_string(),
-                transcripts,
-            )?;
-            return Ok("success".to_string());
-        } else {
-            let err_message = String::from_utf8_lossy(&output.stderr).to_string();
-            Err(err_message)
-        }
+        let chunks = whisper::trancript(&app, &split_path).await?;
+        app.emit("stream", "[end]".to_string())
+            .map_err(|e| e.to_string())?;
+        let transcripts = chunks.join("\n\n");
+        db::update_video(
+            app.state(),
+            video_id,
+            "transcripts".to_string(),
+            transcripts,
+        )?;
+        return Ok("success".to_string());
     }
 }
 
