@@ -116,7 +116,7 @@ function App() {
       } else if (event.payload === "[end]") {
         setInProgress(false);
         addToast({
-          message: "数据流完成",
+          message: "Stream ended successfully",
           variant: "success",
           duration: 5000,
         });
@@ -132,7 +132,7 @@ function App() {
       } else if (event.payload === "[end]") {
         setInProgress(false);
         addToast({
-          message: "数据流完成",
+          message: "Stream ended successfully",
           variant: "success",
           duration: 5000,
         });
