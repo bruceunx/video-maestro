@@ -10,7 +10,7 @@ interface Language {
 const LANGUAGES: Language[] = [
   { code: "en", name: "English" },
   { code: "zh", name: "中文" },
-  { code: "zh-TW", name: "中文(繁體)" },
+  { code: "zh-TW", name: "中文繁體" },
   { code: "ja", name: "日本語" },
   { code: "es", name: "Español" },
   { code: "fr", name: "Français" },
@@ -33,7 +33,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       <Languages className="w-7 h-7 text-green-200" />
       <Select.Root value={selectedLanguage} onValueChange={onLanguageChange}>
         <Select.Trigger
-          className="flex items-center w-24 justify-between px-3 py-2 
+          className="flex items-center w-32 justify-between px-3 py-2 
                      text-left bg-white border border-gray-300 rounded-md 
                      shadow-sm focus:outline-none"
           aria-label="Select language"

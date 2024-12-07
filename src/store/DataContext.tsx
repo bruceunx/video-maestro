@@ -34,7 +34,11 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateCurrentVideo = (video_id: number) => {
     const video = videos.find((video) => video.id === video_id);
-    if (video !== undefined) setCurrentVideo(video);
+    if (video !== undefined) {
+      setCurrentVideo(video);
+    } else {
+      setCurrentVideo(null);
+    }
   };
 
   const fetchVideos = React.useCallback(async () => {

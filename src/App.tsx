@@ -25,6 +25,7 @@ function App() {
     fetchVideos,
     deleteVideo,
     updateCurrentVideo,
+    inProgress,
   } = useVideoData();
 
   const [content, setContent] = React.useState<string>("");
@@ -37,6 +38,9 @@ function App() {
     if (currentVideo !== null) {
       setContent(currentVideo.transcripts || "");
       setSummary(currentVideo.summary || "");
+    } else {
+      setContent("");
+      setSummary("");
     }
   }, [currentVideo]);
 
@@ -57,6 +61,7 @@ function App() {
         parse_url = url.trim();
         updateCurrentVideo(-1);
       }
+      setInProgress(true);
       const result_msg = await invoke("run_yt", { url: parse_url, input_id });
 
       addToast({
@@ -71,12 +76,15 @@ function App() {
         variant: "error",
         duration: 5000,
       });
+    } finally {
+      setInProgress(false);
     }
   }
 
   async function handle_summary() {
     if (currentVideo === null || currentVideo.transcripts === null) return;
     try {
+      setInProgress(true);
       const result_msg = await invoke("run_summary", {
         context: currentVideo.transcripts,
         video_id: currentVideo.id,
@@ -96,6 +104,8 @@ function App() {
         variant: "error",
         duration: 5000,
       });
+    } finally {
+      setInProgress(false);
     }
   }
 
@@ -174,10 +184,11 @@ function App() {
               placeholder="Enter a video url..."
             />
             <button
-              className="flex items-center space-x-2 px-4 py-2 
-                          bg-purple-500 text-white rounded-lg 
-                          hover:bg-purple-600 active:bg-purple-700"
+              className="flex items-center space-x-2 px-4 py-2
+                          bg-purple-500 text-white rounded-lg
+                          hover:bg-purple-600 active:bg-purple-700 disabled:bg-purple-300 disabled:text-gray-500 disabled:cursor-default"
               onClick={handle_transcript}
+              disabled={inProgress}
             >
               <Captions className="w-7 h-7" />
               <span>Transcripts</span>
@@ -209,7 +220,8 @@ function App() {
                   onClick={handle_summary}
                   className="flex items-center space-x-2 px-4 py-2 
                               bg-green-500 text-white rounded-lg 
-                              hover:bg-green-600 active:bg-green-700"
+                              hover:bg-green-600 active:bg-green-700 disabled:bg-green-300 disabled:text-gray-500 disabled:cursor-default"
+                  disabled={inProgress}
                 >
                   <FileText className="w-7 h-7" />
                   <span>Summary</span>
