@@ -6,12 +6,12 @@ interface VideoDataContextType {
   videos: VideoData[];
   currentVideo: VideoData | null;
   updateCurrentVideo: (video_id: number) => void;
-  fetchVideos: () => Promise<void>;
+  fetchVideos: (updateFirst?: boolean) => Promise<void>;
   saveVideo: (videoData: Omit<VideoData, "id">) => Promise<VideoData>;
-  updateVideo: (
-    id: number,
-    videoData: Partial<VideoData>,
-  ) => Promise<VideoData>;
+  // updateVideo: (
+  //   id: number,
+  //   videoData: Partial<VideoData>,
+  // ) => Promise<VideoData>;
   deleteVideo: (id: number) => Promise<void>;
   getVideoById: (id: number) => VideoData | undefined;
 
@@ -41,11 +41,13 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const fetchVideos = React.useCallback(async () => {
+  const fetchVideos = React.useCallback(async (updateFirst: boolean = true) => {
     try {
       const fetchedVideos = await invoke<VideoData[]>("get_videos");
       setVideos(fetchedVideos);
-      if (fetchedVideos.length > 0) setCurrentVideo(fetchedVideos[0]);
+
+      if (updateFirst && fetchedVideos.length > 0)
+        setCurrentVideo(fetchedVideos[0]);
     } catch (error) {
       console.error("Failed to fetch videos:", error);
       throw error;
@@ -68,24 +70,21 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
-  const updateVideo = React.useCallback(
-    async (id: number, videoData: Partial<VideoData>) => {
-      try {
-        const updatedVideo = await invoke<VideoData>("update_video", {
-          id,
-          videoData,
-        });
-        setVideos((prevVideos) =>
-          prevVideos.map((video) => (video.id === id ? updatedVideo : video)),
-        );
-        return updatedVideo;
-      } catch (error) {
-        console.error("Failed to update video:", error);
-        throw error;
-      }
-    },
-    [],
-  );
+  // const updateVideo = React.useCallback(
+  //   async (id: number, videoData: Partial<VideoData>) => {
+  //     try {
+  //       setVideos((prevVideos) =>
+  //         prevVideos.map((video) =>
+  //           video.id === id ? { ...video, ...videoData } : video,
+  //         ),
+  //       );
+  //     } catch (error) {
+  //       console.error("Failed to update video:", error);
+  //       throw error;
+  //     }
+  //   },
+  //   [],
+  // );
 
   const deleteVideo = React.useCallback(async (id: number) => {
     try {
@@ -116,7 +115,6 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
     updateCurrentVideo,
     fetchVideos,
     saveVideo,
-    updateVideo,
     deleteVideo,
     getVideoById,
     inProgress,

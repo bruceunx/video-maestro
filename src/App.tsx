@@ -94,6 +94,7 @@ function App() {
         language: selectedLanguage,
         auto: auto,
       });
+      fetchVideos(false);
     } catch (error) {
       addToast({
         message: error as string,
