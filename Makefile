@@ -14,6 +14,9 @@ WHISPER := ./src-tauri/binaries/whisper-aarch64-apple-darwin
 dev:
 	@pnpm tauri dev
 
+build:
+	@pnpm tauri build
+
 
 all: download split
 

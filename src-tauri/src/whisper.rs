@@ -91,19 +91,19 @@ async fn create_client(app: &tauri::AppHandle) -> Result<Client> {
 //
 //
 fn get_system_prompt(language: &str) -> String {
-    let lang = match language {
-        "es" => "Spanish".to_string(),
-        "fr" => "French".to_string(),
-        "de" => "German".to_string(),
-        "zh" => "Chinese (Simplified)".to_string(),
-        "zh-TW" => "Chinese (Traditional)".to_string(),
-        "ar" => "Arabic".to_string(),
-        "ru" => "Russian".to_string(),
-        "ja" => "Japanese".to_string(),
-        _ => "English".to_string(),
+    let prompt = match language {
+        "es" => "Eres un resumidor multilingüe avanzado. Tu tarea es condensar contenido largo en un resumen claro y conciso en español. Si el contenido no está en español, tradúcelo antes de resumir.",
+        "fr" => "Vous êtes un résumé multilingue avancé. Votre tâche consiste à condenser un contenu long en un résumé clair et concis en français. Si le contenu n'est pas en français, traduisez-le avant de le résumer.",
+        "de" => "Sie sind ein fortgeschrittener mehrsprachiger Zusammenfasser. Ihre Aufgabe ist es, lange Inhalte in eine klare und prägnante Zusammenfassung auf Deutsch zu kondensieren. Wenn der Inhalt nicht auf Deutsch ist, übersetzen Sie ihn vor der Zusammenfassung.",
+        "zh" => "您是一位高级多语言摘要工具。您的任务是将长内容浓缩成简洁明了的中文摘要。如果内容不是中文，请先翻译再总结。",
+        "zh-TW" => "您是一位高級多語言摘要工具。您的任務是將長內容濃縮成簡潔明瞭的繁體中文摘要。如果內容不是繁體中文，請先翻譯再總結。",
+        "ar" => "أنت مُلخص متعدد اللغات متقدم. مهمتك هي تلخيص المحتوى الطويل إلى ملخص واضح وموجز باللغة العربية. إذا لم يكن المحتوى باللغة العربية، قم بترجمته قبل تلخيصه.",
+        "ru" => "Вы — продвинутый многоязычный резюмер. Ваша задача — сжать длинный контент в четкое и краткое резюме на русском языке. Если контент не на русском, переведите его перед резюмированием.",
+        "ja" => "あなたは高度な多言語要約者です。長いコンテンツを日本語で簡潔で明確な要約に凝縮するのがあなたの任務です。内容が日本語でない場合、翻訳してから要約してください。",
+        _ => "You are an advanced multilingual summarizer. Your task is to condense long content into a clear and concise summary in English. If the content is not in English, translate it before summarizing.",
     };
 
-    format!(" Summarize the following content into a concise, clear paragraph that highlights the key points. If the text is in a language other than {}, first translate it into {} before summarizing. The summary should maintain the original meaning and context. Here is the content:", lang, lang)
+    prompt.to_string()
 }
 
 #[tauri::command(rename_all = "snake_case")]
