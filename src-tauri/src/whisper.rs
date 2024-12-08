@@ -91,18 +91,19 @@ async fn create_client(app: &tauri::AppHandle) -> Result<Client> {
 //
 //
 fn get_system_prompt(language: &str) -> String {
-    match language {
-        "es" => "Proporciona un resumen conciso en español. Traduce literalmente sin interpretar o modificar el significado original. Mantén la estructura y el tono del texto original lo más fielmente posible.".to_string(),
-        "fr" => "Fournissez un résumé concis en français. Traduisez littéralement sans interpréter ou modifier le sens original. Conservez la structure et le ton du texte original aussi fidèlement que possible.".to_string(),
-        "de" => "Liefern Sie eine prägnante Zusammenfassung auf Deutsch. Übersetzen Sie wörtlich, ohne zu interpretieren oder die ursprüngliche Bedeutung zu verändern. Bewahren Sie Struktur und Ton des Originaltextes so genau wie möglich.".to_string(),
-        "zh" => "提供一个简洁的中文摘要。逐字翻译，不要解释或修改原始含义。尽可能忠实地保留原文的结构和语气。".to_string(),
-        "zh-TW" => "提供一個簡潔的繁體中文摘要。逐字翻譯，不要解釋或修改原始含義。盡可能忠實地保留原文的結構和語氣。".to_string(),
-        "ar" => "قدم ملخصًا موجزًا باللغة العربية. اترجم حرفيًا دون تفسير أو تعديل المعنى الأصلي. حافظ على بنية ونبرة النص الأصلي بأكبر قدر ممكن من الدقة.".to_string(),
-        "ru" => "Предоставьте краткое резюме на русском языке. Переводите дословно, не интерпретируя и не изменяя исходного значения. Максимально точно сохраняйте структуру и тон оригинального текста.".to_string(),
-        "ja" => "簡潔な日本語の要約を提供してください。元の意味を解釈したり変更したりせず、文字通りに翻訳してください。元のテキストの構造とトーンを可能な限り忠実に保ってください。".to_string(),
-        "en" => "Provide a concise summary in English. Translate literally without interpreting or modifying the original meaning. Maintain the structure and tone of the original text as faithfully as possible.".to_string(),
-        _ => "Provide a concise summary in language from the content without interpreting or modifying the original meaning. Maintain the structure and tone of the original text as faithfully as possible.".to_string(),
-    }
+    let lang = match language {
+        "es" => "Spanish".to_string(),
+        "fr" => "French".to_string(),
+        "de" => "German".to_string(),
+        "zh" => "Chinese (Simplified)".to_string(),
+        "zh-TW" => "Chinese (Traditional)".to_string(),
+        "ar" => "Arabic".to_string(),
+        "ru" => "Russian".to_string(),
+        "ja" => "Japanese".to_string(),
+        _ => "English".to_string(),
+    };
+
+    format!(" Summarize the following content into a concise, clear paragraph that highlights the key points. If the text is in a language other than {}, first translate it into {} before summarizing. The summary should maintain the original meaning and context. Here is the content:", lang, lang)
 }
 
 #[tauri::command(rename_all = "snake_case")]
