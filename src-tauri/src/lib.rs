@@ -137,6 +137,15 @@ async fn download_with_retries(
         args.push("--proxy".to_string());
         args.push(proxy_url);
     }
+    let mut ffmpeg_path_str = std::env::current_exe()
+        .map_err(|e| e.to_string())
+        .and_then(|path| {
+            path.parent()
+                .map(|p| p.to_string_lossy().to_string()) // Convert to a String
+                .ok_or_else(|| "Could not determine binary folder".to_string())
+        })?;
+
+    ffmpeg_path_str.push_str("/ffmpeg");
 
     let standard_args = vec![
         "--force-overwrites",
@@ -148,12 +157,16 @@ async fn download_with_retries(
         "wav",
         "--postprocessor-args",
         "-ar 16000 -ac 1",
+        "--ffmpeg-location",
+        &ffmpeg_path_str,
         "-o",
     ];
 
     args.extend(standard_args.into_iter().map(String::from));
     args.push(temp_path_str.to_string());
     args.push(url.to_string());
+
+    let mut error = String::new();
 
     for attempt in 0..max_retries {
         match app
@@ -168,6 +181,7 @@ async fn download_with_retries(
                 if output.status.success() {
                     return Ok(());
                 } else {
+                    error = String::from_utf8_lossy(&output.stderr).to_string();
                     if attempt < max_retries - 1 {
                         tokio::time::sleep(std::time::Duration::from_secs(
                             2 * (attempt + 1) as u64,
@@ -176,7 +190,8 @@ async fn download_with_retries(
                     }
                 }
             }
-            Err(_) => {
+            Err(e) => {
+                error = e.to_string();
                 if attempt < max_retries - 1 {
                     tokio::time::sleep(std::time::Duration::from_secs(2 * (attempt + 1) as u64))
                         .await;
@@ -186,7 +201,10 @@ async fn download_with_retries(
     }
 
     // If all retries fail
-    Err("Failed to download and process after maximum retries".to_string())
+    Err(format!(
+        "Failed to download and process after maximum retries with error: {}",
+        error
+    ))
 }
 
 #[tauri::command(rename_all = "snake_case")]
