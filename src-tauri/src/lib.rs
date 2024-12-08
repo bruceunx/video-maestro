@@ -138,6 +138,9 @@ async fn download_with_retries(
         args.push(proxy_url);
     }
 
+    let ffmpeg_path = app.path().resource_dir().unwrap().join("ffmpeg");
+    let ffmpeg_path_str = ffmpeg_path.to_str().unwrap();
+
     let standard_args = vec![
         "--force-overwrites",
         "-x",
@@ -148,12 +151,16 @@ async fn download_with_retries(
         "wav",
         "--postprocessor-args",
         "-ar 16000 -ac 1",
+        "--ffmpeg-location",
+        ffmpeg_path_str,
         "-o",
     ];
 
     args.extend(standard_args.into_iter().map(String::from));
     args.push(temp_path_str.to_string());
     args.push(url.to_string());
+
+    let mut error = String::new();
 
     for attempt in 0..max_retries {
         match app
@@ -168,6 +175,7 @@ async fn download_with_retries(
                 if output.status.success() {
                     return Ok(());
                 } else {
+                    error = String::from_utf8_lossy(&output.stderr).to_string();
                     if attempt < max_retries - 1 {
                         tokio::time::sleep(std::time::Duration::from_secs(
                             2 * (attempt + 1) as u64,
@@ -176,7 +184,8 @@ async fn download_with_retries(
                     }
                 }
             }
-            Err(_) => {
+            Err(e) => {
+                error = e.to_string();
                 if attempt < max_retries - 1 {
                     tokio::time::sleep(std::time::Duration::from_secs(2 * (attempt + 1) as u64))
                         .await;
@@ -186,7 +195,10 @@ async fn download_with_retries(
     }
 
     // If all retries fail
-    Err("Failed to download and process after maximum retries".to_string())
+    Err(format!(
+        "Failed to download and process after maximum retries with error: {}",
+        error
+    ))
 }
 
 #[tauri::command(rename_all = "snake_case")]

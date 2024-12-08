@@ -68,7 +68,7 @@ function App() {
       const error_msg = error as string;
       if (error_msg.includes("403")) {
         addToast({
-          message: "please try again later with this video platform!!!",
+          message: `please try again later with this video platform!!!, error: ${error_msg}`,
           variant: "error",
           duration: 10000,
         });
