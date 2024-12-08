@@ -137,9 +137,15 @@ async fn download_with_retries(
         args.push("--proxy".to_string());
         args.push(proxy_url);
     }
+    let mut ffmpeg_path_str = std::env::current_exe()
+        .map_err(|e| e.to_string())
+        .and_then(|path| {
+            path.parent()
+                .map(|p| p.to_string_lossy().to_string()) // Convert to a String
+                .ok_or_else(|| "Could not determine binary folder".to_string())
+        })?;
 
-    let ffmpeg_path = app.path().resource_dir().unwrap().join("ffmpeg");
-    let ffmpeg_path_str = ffmpeg_path.to_str().unwrap();
+    ffmpeg_path_str.push_str("/ffmpeg");
 
     let standard_args = vec![
         "--force-overwrites",
@@ -152,7 +158,7 @@ async fn download_with_retries(
         "--postprocessor-args",
         "-ar 16000 -ac 1",
         "--ffmpeg-location",
-        ffmpeg_path_str,
+        &ffmpeg_path_str,
         "-o",
     ];
 
