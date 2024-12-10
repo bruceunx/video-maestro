@@ -28,3 +28,5 @@ cache/
 src-tauri/binaries/
 
 **/.env
+
+!.github/
