@@ -2,6 +2,11 @@
 
 Welcome to Video Maestro! 🚀 (formerly known as Video Manager), your ultimate desktop app for managing and transforming video content from platforms like YouTube. Built with the power of Tauri 🦀 and ReactJS ⚛️, this app is a one-stop solution for creators, researchers, and enthusiasts.
 
+> [!IMPORTANT]
+> Video Maestro support youtube with/without subtitles. If the video has subtitles, then use subtitles by default, otherwise transform audio to transcripts first
+
+## 📸 Screen Shot
+
 <p align="center">
   <img src="docs/screenshot1.png" alt="Video Maestro Screenshot" width="600">
 </p>
