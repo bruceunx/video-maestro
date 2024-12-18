@@ -4268,7 +4268,6 @@ dependencies = [
  "anyhow",
  "dotenv",
  "futures-util",
- "mime",
  "reqwest",
  "rusqlite",
  "serde",

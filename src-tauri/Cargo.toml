@@ -28,7 +28,7 @@ serde_json.workspace = true
 reqwest.workspace = true
 tokio.workspace = true
 
-mime = "0.3"
+# mime = "0.3"
 dotenv = "0.15"
 anyhow = "1.0"
 futures-util = "0.3"
