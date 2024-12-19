@@ -95,7 +95,7 @@ struct PlayerCaptionsTracklistRenderer {
 struct CaptionItem {
     base_url: String,
     vss_id: String,
-    language_code: String,
+    // language_code: String,
 }
 
 #[derive(Deserialize)]
@@ -116,7 +116,7 @@ struct StreamingData {
 }
 
 // export the struct
-pub struct VideoData {
+pub struct AudioData {
     pub title: String,
     pub length: u64,
     pub keywords: Option<Vec<String>>,
@@ -156,7 +156,7 @@ impl YoutubeAudio {
         Self { client }
     }
 
-    pub async fn get_video_info(&self, url: &str) -> Option<VideoData> {
+    pub async fn get_video_info(&self, url: &str) -> Option<AudioData> {
         let video_id = match extract_id(url) {
             Some(_id) => _id,
             None => return None,
@@ -229,7 +229,7 @@ impl YoutubeAudio {
             None => (None, None),
         };
 
-        Some(VideoData {
+        Some(AudioData {
             title: response_data.video_details.title,
             length: response_data
                 .video_details
