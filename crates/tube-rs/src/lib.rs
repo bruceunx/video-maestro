@@ -10,7 +10,7 @@ pub struct YoutubeAudio {
     client: Client,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 struct ClientInfo {
     client_name: String,
     client_version: String,
@@ -21,12 +21,12 @@ struct ClientInfo {
     android_sdk_version: String,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize)]
 struct RequestContext {
     client: ClientInfo,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize)]
 struct RequestBody {
     context: RequestContext,
     video_id: String,
