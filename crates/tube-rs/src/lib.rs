@@ -58,7 +58,7 @@ struct ResponseBody {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct VideoDetail {
-    video_id: String,
+    // video_id: String,
     title: String,
     length_seconds: String,
     keywords: Option<Vec<String>>,
@@ -74,8 +74,8 @@ struct ThumbNail {
 #[derive(Deserialize)]
 struct ThumbNailItem {
     url: String,
-    width: u32,
-    height: u32,
+    // width: u32,
+    // height: u32,
 }
 
 #[derive(Deserialize)]
@@ -117,14 +117,15 @@ struct StreamingData {
 
 // export the struct
 pub struct VideoData {
-    title: String,
-    length: u64,
-    keywords: Option<Vec<String>>,
-    description: Option<String>,
-    caption_lang: Option<String>,
-    caption_url: Option<String>,
-    audio_url: String,
-    thumbnail_url: String,
+    pub title: String,
+    pub length: u64,
+    pub keywords: Option<Vec<String>>,
+    pub description: Option<String>,
+    pub caption_lang: Option<String>,
+    pub caption_url: Option<String>,
+    pub audio_url: String,
+    pub audio_length: u64,
+    pub thumbnail_url: String,
 }
 
 fn extract_id(url: &str) -> Option<String> {
@@ -138,9 +139,9 @@ fn extract_id(url: &str) -> Option<String> {
     None
 }
 
-pub fn extract_xml_captions(content: &str) -> Option<Vec<String>> {
-    todo!()
-}
+// pub fn extract_xml_captions(content: &str) -> Option<Vec<String>> {
+//     todo!()
+// }
 
 impl YoutubeAudio {
     pub fn new(proxy: Option<&str>) -> Self {
@@ -155,7 +156,7 @@ impl YoutubeAudio {
         Self { client }
     }
 
-    pub async fn get_video_info(&self, url: &str) -> Option<ResponseBody> {
+    pub async fn get_video_info(&self, url: &str) -> Option<VideoData> {
         let video_id = match extract_id(url) {
             Some(_id) => _id,
             None => return None,
@@ -190,14 +191,64 @@ impl YoutubeAudio {
             }
         };
 
-        // process the response_data to get the proper data
+        let mut all_formats = Vec::new();
+        if let Some(formats) = response_data.streaming_data.formats {
+            all_formats.extend(formats);
+        }
+        if let Some(adaptive_formats) = response_data.streaming_data.adaptive_formats {
+            all_formats.extend(adaptive_formats);
+        }
 
-        Some(response_data)
+        let (audio_url, audio_length) = match all_formats
+            .into_iter()
+            .filter(|format| format.mime_type.starts_with("audio"))
+            .min_by_key(|format| format.bitrate)
+        {
+            Some(format) => (
+                format.url,
+                format
+                    .content_length
+                    .parse::<u64>()
+                    .ok()
+                    .or(Some(0))
+                    .unwrap(),
+            ),
+            None => return None,
+        };
+
+        let thumbnail_url = response_data.video_details.thumbnail.thumbnails[0]
+            .url
+            .clone();
+
+        let (caption_url, caption_lang) = match response_data.captions {
+            Some(captions) => {
+                let caption = &captions.player_captions_tracklist_renderer.caption_tracks[0];
+
+                (Some(caption.base_url.clone()), Some(caption.vss_id.clone()))
+            }
+            None => (None, None),
+        };
+
+        Some(VideoData {
+            title: response_data.video_details.title,
+            length: response_data
+                .video_details
+                .length_seconds
+                .parse::<u64>()
+                .unwrap(),
+            keywords: response_data.video_details.keywords,
+            description: response_data.video_details.short_description,
+            caption_lang,
+            caption_url,
+            audio_url,
+            audio_length,
+            thumbnail_url,
+        })
     }
 
-    pub fn get_video_metadata(video_data: &ResponseBody) -> String {
-        video_data.video_details.title.clone()
-    }
+    // pub fn get_video_metadata(video_data: &ResponseBody) -> String {
+    //     video_data.video_details.title.clone()
+    // }
 }
 
 #[cfg(test)]
@@ -212,22 +263,10 @@ mod tests {
         let proxy = env::var("PROXY").ok();
         let youtube_client = YoutubeAudio::new(proxy.as_deref());
         let url = "https://www.youtube.com/watch?v=Q0cvzaPJJas&ab_channel=TJDeVries";
-        let response = youtube_client.get_video_info(url).await;
-        assert!(response.is_some());
-        let response_data = response.unwrap();
-        assert_eq!(
-            response_data.video_details.video_id,
-            "Q0cvzaPJJas".to_string()
-        );
-
-        let captions = response_data
-            .captions
-            .unwrap()
-            .player_captions_tracklist_renderer
-            .caption_tracks;
-
-        assert_eq!(captions.len(), 1);
-        assert_eq!(captions[0].vss_id, "a.en".to_string()); // "a.en" for en auto-generated
+        let video_data = youtube_client.get_video_info(url).await;
+        assert!(video_data.is_some());
+        let video = video_data.unwrap();
+        assert_eq!(video.caption_lang.unwrap(), "a.en".to_string());
     }
 
     #[test]
