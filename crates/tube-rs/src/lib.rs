@@ -47,15 +47,15 @@ impl ClientInfo {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ResponseBody {
+struct ResponseBody {
     streaming_data: StreamingData,
     captions: Option<Captions>,
     video_details: VideoDetail,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct VideoDetail {
     video_id: String,
@@ -66,31 +66,31 @@ struct VideoDetail {
     thumbnail: ThumbNail,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct ThumbNail {
     thumbnails: Vec<ThumbNailItem>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct ThumbNailItem {
     url: String,
     width: u32,
     height: u32,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Captions {
     player_captions_tracklist_renderer: PlayerCaptionsTracklistRenderer,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct PlayerCaptionsTracklistRenderer {
     caption_tracks: Vec<CaptionItem>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct CaptionItem {
     base_url: String,
@@ -98,7 +98,7 @@ struct CaptionItem {
     language_code: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct Format {
     #[serde(rename = "mimeType")]
     mime_type: String,
@@ -108,14 +108,26 @@ struct Format {
     content_length: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct StreamingData {
     formats: Option<Vec<Format>>,
     #[serde(rename = "adaptiveFormats")]
     adaptive_formats: Option<Vec<Format>>,
 }
 
-pub fn extract_id(url: &str) -> Option<String> {
+// export the struct
+pub struct VideoData {
+    title: String,
+    length: u64,
+    keywords: Option<Vec<String>>,
+    description: Option<String>,
+    caption_lang: Option<String>,
+    caption_url: Option<String>,
+    audio_url: String,
+    thumbnail_url: String,
+}
+
+fn extract_id(url: &str) -> Option<String> {
     let re =
         Regex::new(r"(?:v=|\/v\/|youtu\.be\/|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{11})").unwrap();
 
@@ -177,7 +189,14 @@ impl YoutubeAudio {
                 return None;
             }
         };
+
+        // process the response_data to get the proper data
+
         Some(response_data)
+    }
+
+    pub fn get_video_metadata(video_data: &ResponseBody) -> String {
+        video_data.video_details.title.clone()
     }
 }
 
