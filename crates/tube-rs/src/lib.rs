@@ -4,6 +4,7 @@ use reqwest::{
     Client, Proxy,
 };
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 pub struct YoutubeAudio {
     client: Client,
@@ -246,9 +247,13 @@ impl YoutubeAudio {
         })
     }
 
-    // pub fn get_video_metadata(video_data: &ResponseBody) -> String {
-    //     video_data.video_details.title.clone()
-    // }
+    pub async fn download_caption(&self, caption_url: &str) -> Option<Vec<String>> {
+        todo!()
+    }
+
+    pub async fn download_audio(&self, audio_url: &str) -> Option<PathBuf> {
+        todo!()
+    }
 }
 
 #[cfg(test)]
