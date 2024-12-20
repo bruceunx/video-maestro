@@ -145,9 +145,60 @@ fn extract_id(url: &str) -> Option<String> {
     }
     None
 }
+fn parse_xml_with_auto(xml_string: &str) -> Result<Vec<SubtitleEntry>, Box<dyn Error>> {
+    let mut reader = Reader::from_str(xml_string);
+    reader.config_mut().trim_text(true);
+
+    let mut subtitles = Vec::new();
+    let mut current_subtitle: Option<SubtitleEntry> = None;
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(ref e)) => match e.name().as_ref() {
+                b"p" => {
+                    let mut timestamp = 0;
+                    let mut duration = 0;
+                    for attr in e.attributes() {
+                        let attr = attr?;
+                        match attr.key.as_ref() {
+                            b"t" => timestamp = attr.unescape_value()?.parse()?,
+                            b"d" => duration = attr.unescape_value()?.parse()?,
+                            _ => {}
+                        }
+                    }
+                    current_subtitle = Some(SubtitleEntry {
+                        timestamp,
+                        duration,
+                        text: String::new(),
+                    });
+                }
+                _ => {}
+            },
+            Ok(Event::Text(e)) => {
+                if let Some(ref mut subtitle) = current_subtitle {
+                    subtitle.text.push_str(&e.unescape()?);
+                }
+            }
+            Ok(Event::End(ref e)) => {
+                if e.name().as_ref() == b"p" {
+                    if let Some(subtitle) = current_subtitle.take() {
+                        if !subtitle.text.is_empty() {
+                            subtitles.push(subtitle);
+                        }
+                    }
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(Box::new(e)),
+            _ => {}
+        }
+    }
+
+    Ok(subtitles)
+}
 
 fn parse_xml(xml: &str) -> Result<Vec<SubtitleEntry>, Box<dyn Error>> {
-    let mut reader = Reader::from_str(xml.as_ref());
+    let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(true);
 
     let mut subtitles = Vec::new();
@@ -469,5 +520,32 @@ mod tests {
         assert_eq!(subtitles.len(), 8);
         assert_eq!(subtitles[0].timestamp, 80);
         assert_eq!(subtitles[subtitles.len() - 1].duration, 5200);
+    }
+
+    #[test]
+    fn parse_xml_auto_works() {
+        let xml = r#"
+            <?xml version="1.0" encoding="utf-8" ?><timedtext format="3">
+            <head>
+            <ws id="0"/>
+            <ws id="1" mh="2" ju="0" sd="3"/>
+            <wp id="0"/>
+            <wp id="1" ap="6" ah="20" av="100" rc="2" cc="40"/>
+            </head>
+            <body>
+            <w t="0" id="1" wp="1" ws="1"/>
+            <p t="6839" d="4680" w="1"><s ac="0">dark</s><s t="321" ac="0"> energy</s><s t="801" ac="0"> is</s><s t="960" ac="0"> one</s><s t="1080" ac="0"> of</s><s t="1241" ac="0"> the</s><s t="1401" ac="0"> biggest</s></p>
+            <p t="8629" d="2890" w="1" a="1">
+            </p>
+            <p t="8639" d="6120" w="1"><s ac="0">mysteries</s><s t="601" ac="0"> in</s><s t="1040" ac="0"> physics</s><s t="2040" ac="0"> it</s><s t="2241" ac="0"> dominates</s><s t="2761" ac="0"> the</s></p>
+            <p t="11509" d="3250" w="1" a="1">
+            </p>
+            </body>
+            </timedtext>
+        "#;
+        let result = parse_xml(&xml);
+        assert!(result.is_ok());
+        let subtitles = result.unwrap();
+        assert_eq!(subtitles.len(), 2);
     }
 }
