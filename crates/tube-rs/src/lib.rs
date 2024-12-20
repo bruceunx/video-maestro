@@ -223,7 +223,16 @@ impl YoutubeAudio {
 
         let (caption_url, caption_lang) = match response_data.captions {
             Some(captions) => {
-                let caption = &captions.player_captions_tracklist_renderer.caption_tracks[0];
+                let caption_array = captions.player_captions_tracklist_renderer.caption_tracks;
+
+                let caption = if caption_array.len() > 1 {
+                    caption_array
+                        .iter()
+                        .find(|item| item.vss_id.contains("en"))
+                        .unwrap()
+                } else {
+                    &caption_array[0]
+                };
 
                 (Some(caption.base_url.clone()), Some(caption.vss_id.clone()))
             }
@@ -285,6 +294,18 @@ mod tests {
     use super::*;
     use dotenv::dotenv;
     use std::{env, str::FromStr};
+
+    #[tokio::test]
+    async fn check_caption_lang_works() {
+        dotenv().ok();
+        let proxy = env::var("PROXY").ok();
+        let youtube_client = YoutubeAudio::new(proxy.as_deref());
+        let url = "https://www.youtube.com/watch?v=2p_Hlm6aCok&ab_channel=TheoriesofEverythingwithCurtJaimungal";
+        let video_data = youtube_client.get_video_info(url).await;
+        assert!(video_data.is_some());
+        let video = video_data.unwrap();
+        assert!(video.caption_lang.unwrap().contains("en"));
+    }
 
     #[tokio::test]
     async fn check_response_body_works() {
