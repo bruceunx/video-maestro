@@ -6,7 +6,6 @@ import { useVideoData } from "../store/DataContext";
 import { VideoItemProps } from "../types/db";
 
 const VideoItem = ({ item }: VideoItemProps) => {
-  console.log(item);
   const { currentVideo, updateCurrentVideo, inProgress } = useVideoData();
 
   const onClick = () => {

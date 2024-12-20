@@ -1,4 +1,4 @@
-.PHONY: all download whisper
+.PHONY: all download whisper test-rs
 
 
 # must make the statment before .env, or the eq always evaluate
@@ -45,3 +45,6 @@ check:
 
 title:
 	$(YT) --proxy $(PROXY_URL) --skip-download --print "%(title)s|%(upload_date)s" $(url)
+
+test-rs:
+	cargo test -p tube-rs

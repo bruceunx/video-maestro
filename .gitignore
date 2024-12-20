@@ -30,3 +30,5 @@ src-tauri/binaries/
 **/.env
 
 !.github/
+
+target/

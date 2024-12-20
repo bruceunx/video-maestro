@@ -129,7 +129,6 @@ function App() {
         setInProgress(true);
         setSummary("");
       } else if (event.payload === "[end]") {
-        setInProgress(false);
         addToast({
           message: "Stream ended successfully",
           variant: "success",
