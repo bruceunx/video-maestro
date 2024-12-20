@@ -118,7 +118,10 @@ struct StreamingData {
 }
 
 // export the struct
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct AudioData {
+    pub video_id: String,
     pub title: String,
     pub length: u64,
     pub timestamp: u64,
@@ -336,6 +339,7 @@ impl YoutubeAudio {
         let thumbnail_url = format!("https://i.ytimg.com/vi/{}/sddefault.jpg", video_id);
 
         Some(AudioData {
+            video_id,
             title: response_data.video_details.title,
             length: response_data
                 .video_details
