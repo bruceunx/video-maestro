@@ -1,6 +1,6 @@
 use regex::Regex;
 use reqwest::{
-    header::{HeaderMap, HeaderValue, CONTENT_TYPE, USER_AGENT},
+    header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE, USER_AGENT},
     Client, Proxy,
 };
 use serde::{Deserialize, Serialize};
@@ -257,6 +257,9 @@ impl YoutubeAudio {
         file_size: u64,
         file_path: PathBuf,
     ) -> Result<(), Box<dyn Error>> {
+        let mut headers = HeaderMap::new();
+        headers.insert(USER_AGENT, HeaderValue::from_static("Mozilla/5.0"));
+        headers.insert(ACCEPT_LANGUAGE, HeaderValue::from_static("en-us,en"));
         let mut file = File::create(file_path)?;
         let mut downloaded = 0;
         let default_range_size = 1024 * 1024 * 9;
@@ -265,6 +268,7 @@ impl YoutubeAudio {
             let chunk_reponse = self
                 .client
                 .get(format!("{}?range={}-{}", audio_url, downloaded, stop_pos))
+                .headers(headers.clone())
                 .send()
                 .await?;
 
