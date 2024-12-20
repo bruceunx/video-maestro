@@ -101,13 +101,13 @@ struct CaptionItem {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct Format {
-    #[serde(rename = "mimeType")]
     mime_type: String,
     bitrate: u32,
     url: String,
-    #[serde(rename = "contentLength")]
     content_length: String,
+    last_modified: String,
 }
 
 #[derive(Deserialize)]
@@ -121,6 +121,7 @@ struct StreamingData {
 pub struct AudioData {
     pub title: String,
     pub length: u64,
+    pub timestamp: u64,
     pub keywords: Option<Vec<String>>,
     pub description: Option<String>,
     pub caption_lang: Option<String>,
@@ -288,7 +289,9 @@ impl YoutubeAudio {
         };
 
         let mut all_formats = Vec::new();
+        let mut last_modified = 0;
         if let Some(formats) = response_data.streaming_data.formats {
+            last_modified = formats[0].last_modified.parse::<u64>().unwrap();
             all_formats.extend(formats);
         }
         if let Some(adaptive_formats) = response_data.streaming_data.adaptive_formats {
@@ -339,6 +342,7 @@ impl YoutubeAudio {
                 .length_seconds
                 .parse::<u64>()
                 .unwrap(),
+            timestamp: last_modified,
             keywords: response_data.video_details.keywords,
             description: response_data.video_details.short_description,
             caption_lang,
@@ -423,6 +427,7 @@ mod tests {
         assert!(video_data.is_some());
         let video = video_data.unwrap();
         assert_eq!(video.caption_lang.unwrap(), "a.en".to_string());
+        assert!(video.timestamp > 0);
     }
 
     #[tokio::test]
