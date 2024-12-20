@@ -1,3 +1,4 @@
+use quick_xml::{events::Event, Reader};
 use regex::Regex;
 use reqwest::{
     header::{HeaderMap, HeaderValue, ACCEPT_LANGUAGE, CONTENT_TYPE, USER_AGENT},
@@ -129,6 +130,12 @@ pub struct AudioData {
     pub thumbnail_url: String,
 }
 
+pub struct SubtitleEntry {
+    pub timestamp: u64,
+    pub duration: u32,
+    pub text: String,
+}
+
 fn extract_id(url: &str) -> Option<String> {
     let re =
         Regex::new(r"(?:v=|\/v\/|youtu\.be\/|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{11})").unwrap();
@@ -136,13 +143,50 @@ fn extract_id(url: &str) -> Option<String> {
     if let Some(captures) = re.captures(url) {
         return captures.get(1).map(|m| m.as_str().to_string());
     }
-
     None
 }
 
-// pub fn extract_xml_captions(content: &str) -> Option<Vec<String>> {
-//     todo!()
-// }
+fn parse_xml(xml: &str) -> Result<Vec<SubtitleEntry>, Box<dyn Error>> {
+    let mut reader = Reader::from_str(xml.as_ref());
+    reader.config_mut().trim_text(true);
+
+    let mut subtitles = Vec::new();
+    let mut current_text = String::new();
+    let mut current_timestamp = 0;
+    let mut current_duration = 0;
+
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(e)) if e.name().as_ref() == b"p" => {
+                current_text.clear();
+                for attr in e.attributes() {
+                    let attr = attr?;
+                    match attr.key.as_ref() {
+                        b"t" => current_timestamp = attr.unescape_value()?.parse()?,
+                        b"d" => current_duration = attr.unescape_value()?.parse()?,
+                        _ => {}
+                    }
+                }
+            }
+            Ok(Event::Text(e)) => {
+                current_text.push_str(&e.unescape()?);
+            }
+            Ok(Event::End(e)) if e.name().as_ref() == b"p" => {
+                if !current_text.is_empty() {
+                    subtitles.push(SubtitleEntry {
+                        timestamp: current_timestamp,
+                        duration: current_duration,
+                        text: current_text.trim().to_string(),
+                    })
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(Box::new(e)),
+            _ => {}
+        }
+    }
+    Ok(subtitles)
+}
 
 impl YoutubeAudio {
     pub fn new(proxy: Option<&str>) -> Self {
@@ -256,8 +300,17 @@ impl YoutubeAudio {
         })
     }
 
-    pub async fn download_caption(&self, caption_url: &str) -> Option<Vec<String>> {
-        todo!()
+    pub async fn download_caption(
+        &self,
+        caption_url: &str,
+    ) -> Result<Vec<SubtitleEntry>, Box<dyn Error>> {
+        let mut headers = HeaderMap::new();
+        headers.insert(USER_AGENT, HeaderValue::from_static("Mozilla/5.0"));
+        headers.insert(ACCEPT_LANGUAGE, HeaderValue::from_static("en-us,en"));
+        let response = self.client.get(caption_url).headers(headers).send().await?;
+        let xml = response.text().await?;
+
+        parse_xml(&xml)
     }
 
     pub async fn download_audio(
@@ -392,5 +445,29 @@ mod tests {
             let video_id = extract_id(input);
             assert_eq!(video_id, expected);
         }
+    }
+
+    #[test]
+    fn parse_xml_works() {
+        let xml = r#"
+            <?xml version="1.0" encoding="utf-8" ?><timedtext format="3">
+            <body>
+            <p t="80" d="7520">我们生活在弦理论描述的错误世界中。从未有物理学家</p>
+            <p t="7600" d="5160">因弦理论获得过大奖。我可以绝对肯定地告诉你，这不是</p>
+            <p t="12760" d="9200">我们生活的现实世界。所以我们需要重新开始。 弦理论创始人之一、斯坦福大学理论物理学教授</p>
+            <p t="21960" d="4800">伦纳德·苏斯金德 (Leonard Susskind) 做出了一项开创性的揭露，</p>
+            <p t="26760" d="7480">他做出了令人震惊的承认。弦理论失败了，许多物理学家不知道</p>
+            <p t="34240" d="5440">该怎么办。他们很害怕。他们可能找不到工作。曾经承诺统一物理学的理论</p>
+            <p t="39680" d="7560">却产生了 10 到 500 种不同的可能解决方案或真空状态。</p>
+            <p t="47240" d="5200">一些理论家认为，每个数学解决方案都对应一个物理现实，即</p>
+            </body>
+            </timedtext>
+        "#;
+        let result = parse_xml(&xml);
+        assert!(result.is_ok());
+        let subtitles = result.unwrap();
+        assert_eq!(subtitles.len(), 8);
+        assert_eq!(subtitles[0].timestamp, 80);
+        assert_eq!(subtitles[subtitles.len() - 1].duration, 5200);
     }
 }
