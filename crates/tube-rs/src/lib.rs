@@ -4,7 +4,7 @@ use reqwest::{
     Client, Proxy,
 };
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{error::Error, fs::File, io::Write, path::PathBuf};
 
 pub struct YoutubeAudio {
     client: Client,
@@ -251,8 +251,28 @@ impl YoutubeAudio {
         todo!()
     }
 
-    pub async fn download_audio(&self, audio_url: &str) -> Option<PathBuf> {
-        todo!()
+    pub async fn download_audio(
+        &self,
+        audio_url: &str,
+        file_size: u64,
+        file_path: PathBuf,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut file = File::create(file_path)?;
+        let mut downloaded = 0;
+        let default_range_size = 1024 * 1024 * 9;
+        while downloaded < file_size {
+            let stop_pos = (downloaded + default_range_size).min(file_size) - 1;
+            let chunk_reponse = self
+                .client
+                .get(format!("{}?range={}-{}", audio_url, downloaded, stop_pos))
+                .send()
+                .await?;
+
+            let chunk = chunk_reponse.bytes().await?;
+            file.write_all(&chunk)?;
+            downloaded += chunk.len() as u64;
+        }
+        Ok(())
     }
 }
 
@@ -260,7 +280,7 @@ impl YoutubeAudio {
 mod tests {
     use super::*;
     use dotenv::dotenv;
-    use std::env;
+    use std::{env, str::FromStr};
 
     #[tokio::test]
     async fn check_response_body_works() {
@@ -272,6 +292,27 @@ mod tests {
         assert!(video_data.is_some());
         let video = video_data.unwrap();
         assert_eq!(video.caption_lang.unwrap(), "a.en".to_string());
+    }
+
+    #[tokio::test]
+    async fn check_download_audio_works() {
+        dotenv().ok();
+        let proxy = env::var("PROXY").ok();
+        let youtube_client = YoutubeAudio::new(proxy.as_deref());
+        let url = "https://www.youtube.com/watch?v=Q0cvzaPJJas&ab_channel=TJDeVries";
+        let video_data = youtube_client.get_video_info(url).await;
+        assert!(video_data.is_some());
+
+        let video = video_data.unwrap();
+
+        let audio_url = &video.audio_url;
+        let audio_length = video.audio_length;
+        let file_path = PathBuf::from_str("./sample.webm").unwrap();
+        let download = youtube_client
+            .download_audio(audio_url, audio_length, file_path)
+            .await;
+
+        assert!(download.is_ok());
     }
 
     #[test]
