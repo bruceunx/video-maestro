@@ -65,20 +65,20 @@ struct VideoDetail {
     length_seconds: String,
     keywords: Option<Vec<String>>,
     short_description: Option<String>,
-    thumbnail: ThumbNail,
+    // thumbnail: ThumbNail,
 }
 
-#[derive(Deserialize)]
-struct ThumbNail {
-    thumbnails: Vec<ThumbNailItem>,
-}
-
-#[derive(Deserialize)]
-struct ThumbNailItem {
-    url: String,
-    // width: u32,
-    // height: u32,
-}
+// #[derive(Deserialize)]
+// struct ThumbNail {
+//     thumbnails: Vec<ThumbNailItem>,
+// }
+//
+// #[derive(Deserialize)]
+// struct ThumbNailItem {
+//     url: String,
+//     // width: u32,
+//     // height: u32,
+// }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -312,10 +312,6 @@ impl YoutubeAudio {
             None => return None,
         };
 
-        let thumbnail_url = response_data.video_details.thumbnail.thumbnails[0]
-            .url
-            .clone();
-
         let (caption_url, caption_lang) = match response_data.captions {
             Some(captions) => {
                 let caption_array = captions.player_captions_tracklist_renderer.caption_tracks;
@@ -333,6 +329,8 @@ impl YoutubeAudio {
             }
             None => (None, None),
         };
+
+        let thumbnail_url = format!("https://i.ytimg.com/vi/{}/sddefault.jpg", video_id);
 
         Some(AudioData {
             title: response_data.video_details.title,
@@ -354,14 +352,18 @@ impl YoutubeAudio {
     pub async fn download_caption(
         &self,
         caption_url: &str,
+        caption_lang: &str,
     ) -> Result<Vec<SubtitleEntry>, Box<dyn Error>> {
         let mut headers = HeaderMap::new();
         headers.insert(USER_AGENT, HeaderValue::from_static("Mozilla/5.0"));
         headers.insert(ACCEPT_LANGUAGE, HeaderValue::from_static("en-us,en"));
         let response = self.client.get(caption_url).headers(headers).send().await?;
         let xml = response.text().await?;
-
-        parse_xml(&xml)
+        if caption_lang.contains("a.") {
+            parse_xml_with_auto(xml.as_ref())
+        } else {
+            parse_xml(xml.as_ref())
+        }
     }
 
     pub async fn download_audio(
