@@ -4299,6 +4299,7 @@ dependencies = [
  "tauri-plugin-shell",
  "thiserror 2.0.8",
  "tokio",
+ "tube-rs",
 ]
 
 [[package]]

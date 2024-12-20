@@ -8,6 +8,7 @@ mod setting;
 mod whisper;
 use serde::Deserialize;
 use std::path::PathBuf;
+use tube_rs::YoutubeAudio;
 
 #[derive(Deserialize, Debug)]
 struct VideoInfo {
@@ -211,12 +212,18 @@ async fn download_with_retries(
 async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), String> {
     let mut video_id = input_id;
     if video_id == -1 {
+        let youtube_audio = YoutubeAudio::new(setting::get_proxy(&app).as_deref());
+        let audio_data = match youtube_audio.get_video_info(url).await {
+            Some(data) => data,
+            None => return Err("failed to parse audio info".to_string()),
+        };
+
         let video_info = get_video_metadata(&app, url).await?;
         video_id = db::create_video(
             app.state(),
             url.to_string(),
-            video_info.title,
-            video_info.duration,
+            audio_data.title,
+            audio_data.audio_length,
             video_info.upload_date,
         )?;
         app.emit("state", "update video")
