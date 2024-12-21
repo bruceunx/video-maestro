@@ -109,7 +109,7 @@ fn get_system_prompt(language: &str) -> String {
 #[tauri::command(rename_all = "snake_case")]
 pub async fn run_summary(
     app: tauri::AppHandle,
-    video_id: i64,
+    video_id: i64, // id in database
     context: String,
     language: String,
     auto: bool,
@@ -265,53 +265,35 @@ pub async fn trancript(app: &tauri::AppHandle, audio_path: &Path) -> Result<Vec<
         _ => return Err("no api settings found".to_string()),
     };
 
-    let mut dir = fs::read_dir(audio_path).await.map_err(|e| e.to_string())?;
     let mut chunks = Vec::new();
 
-    while let Some(entry) = dir.next_entry().await.map_err(|e| e.to_string())? {
-        let audio_path = entry.path();
+    if !audio_path.is_dir() {
         let audio_path_str = audio_path.to_str().unwrap();
         match transcribe_audio(app, &api_key, audio_path_str, &model_name, &api_url).await {
             Ok(response) => {
                 app.emit("stream", response.text.clone()).unwrap();
                 chunks.push(response.text);
             }
-            Err(_) => continue,
+            Err(e) => return Err(e.to_string()),
         };
+    } else {
+        let mut dir = fs::read_dir(audio_path).await.map_err(|e| e.to_string())?;
+
+        while let Some(entry) = dir.next_entry().await.map_err(|e| e.to_string())? {
+            let audio_path = entry.path();
+            let audio_path_str = audio_path.to_str().unwrap();
+            match transcribe_audio(app, &api_key, audio_path_str, &model_name, &api_url).await {
+                Ok(response) => {
+                    app.emit("stream", response.text.clone()).unwrap();
+                    chunks.push(response.text);
+                }
+                Err(_) => continue,
+            };
+        }
+        remove_files_from_directory(audio_path)
+            .await
+            .map_err(|e| e.to_string())?;
     }
-    remove_files_from_directory(audio_path)
-        .await
-        .map_err(|e| e.to_string())?;
 
     Ok(chunks)
 }
-
-// #[tokio::main]
-// async fn main() -> Result<()> {
-//     dotenv().ok();
-//     let api_key = std::env::var("GROQ_API_KEY").expect("API KEY is missing!");
-//     let api_url = std::env::var("GROQ_AUDIO_URL").expect("AUDIO URL is missing!");
-//     let model_name = std::env::var("AUDIO_MODEL").expect("AUDIO MODEL is missing!");
-//
-//     let llm_api_url = std::env::var("GROQ_LLM_URL").expect("AUDIO URL is missing!");
-//     let llm_model_name = std::env::var("LLM_MODEL").expect("AUDIO MODEL is missing!");
-//
-//     let audio_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-//         .parent()
-//         .unwrap()
-//         .join("cache");
-//
-//     let mut dir = fs::read_dir(audio_path).await?;
-//     while let Some(entry) = dir.next_entry().await? {
-//         let audio_path = entry.path();
-//         let audio_path_str = audio_path.to_str().unwrap();
-//         let text = match transcribe_audio(&api_key, audio_path_str, &model_name, &api_url).await {
-//             Ok(response) => response.text,
-//             Err(e) => anyhow::bail!("Error from transcribe_audio {}", e),
-//         };
-//
-//         chat_stream(&api_key, &text, &llm_model_name, &llm_api_url).await?;
-//     }
-//
-//     Ok(())
-// }

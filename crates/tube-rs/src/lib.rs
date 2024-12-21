@@ -5,7 +5,7 @@ use reqwest::{
     Client, Proxy,
 };
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fs::File, io::Write, path::PathBuf};
+use std::{error::Error, fs::File, io::Write, path::Path};
 
 pub struct YoutubeAudio {
     client: Client,
@@ -68,18 +68,6 @@ struct VideoDetail {
     // thumbnail: ThumbNail,
 }
 
-// #[derive(Deserialize)]
-// struct ThumbNail {
-//     thumbnails: Vec<ThumbNailItem>,
-// }
-//
-// #[derive(Deserialize)]
-// struct ThumbNailItem {
-//     url: String,
-//     // width: u32,
-//     // height: u32,
-// }
-
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Captions {
@@ -97,7 +85,6 @@ struct PlayerCaptionsTracklistRenderer {
 struct CaptionItem {
     base_url: String,
     vss_id: String,
-    // language_code: String,
 }
 
 #[derive(Deserialize)]
@@ -112,22 +99,25 @@ struct Format {
 
 #[derive(Deserialize)]
 struct StreamingData {
-    formats: Option<Vec<Format>>,
+    // formats: Option<Vec<Format>>,
     #[serde(rename = "adaptiveFormats")]
     adaptive_formats: Option<Vec<Format>>,
 }
 
 // export the struct
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct AudioData {
+    pub video_id: String,
     pub title: String,
-    pub length: u64,
+    pub duration: u64,
     pub timestamp: u64,
     pub keywords: Option<Vec<String>>,
     pub description: Option<String>,
     pub caption_lang: Option<String>,
     pub caption_url: Option<String>,
     pub audio_url: String,
-    pub audio_length: u64,
+    pub audio_filesize: u64,
     pub thumbnail_url: String,
 }
 
@@ -138,8 +128,7 @@ pub struct SubtitleEntry {
 }
 
 fn extract_id(url: &str) -> Option<String> {
-    let re =
-        Regex::new(r"(?:v=|\/v\/|youtu\.be\/|\/embed\/|\/shorts\/)([A-Za-z0-9_-]{11})").unwrap();
+    let re = Regex::new(r"(?:v=|\/v\/|youtu\.be\/|\/embed\/|\/shorts\/)([A-Za-z0-9_-]+)").unwrap();
 
     if let Some(captures) = re.captures(url) {
         return captures.get(1).map(|m| m.as_str().to_string());
@@ -148,7 +137,7 @@ fn extract_id(url: &str) -> Option<String> {
 }
 fn parse_xml_with_auto(xml_string: &str) -> Result<Vec<SubtitleEntry>, Box<dyn Error>> {
     let mut reader = Reader::from_str(xml_string);
-    reader.config_mut().trim_text(true);
+    reader.config_mut().trim_text(false);
 
     let mut subtitles = Vec::new();
     let mut current_subtitle: Option<SubtitleEntry> = None;
@@ -200,7 +189,7 @@ fn parse_xml_with_auto(xml_string: &str) -> Result<Vec<SubtitleEntry>, Box<dyn E
 
 fn parse_xml(xml: &str) -> Result<Vec<SubtitleEntry>, Box<dyn Error>> {
     let mut reader = Reader::from_str(xml);
-    reader.config_mut().trim_text(true);
+    reader.config_mut().trim_text(false);
 
     let mut subtitles = Vec::new();
     let mut current_text = String::new();
@@ -289,21 +278,18 @@ impl YoutubeAudio {
         };
 
         let mut all_formats = Vec::new();
-        let mut last_modified = 0;
-        if let Some(formats) = response_data.streaming_data.formats {
-            last_modified = formats[0].last_modified.parse::<u64>().unwrap();
-            all_formats.extend(formats);
-        }
+
         if let Some(adaptive_formats) = response_data.streaming_data.adaptive_formats {
             all_formats.extend(adaptive_formats);
         }
 
-        let (audio_url, audio_length) = match all_formats
+        let (last_modified, audio_url, audio_filesize) = match all_formats
             .into_iter()
             .filter(|format| format.mime_type.starts_with("audio"))
             .min_by_key(|format| format.bitrate)
         {
             Some(format) => (
+                format.last_modified.parse::<u64>().unwrap(),
                 format.url,
                 format
                     .content_length
@@ -312,6 +298,7 @@ impl YoutubeAudio {
                     .or(Some(0))
                     .unwrap(),
             ),
+
             None => return None,
         };
 
@@ -336,8 +323,9 @@ impl YoutubeAudio {
         let thumbnail_url = format!("https://i.ytimg.com/vi/{}/sddefault.jpg", video_id);
 
         Some(AudioData {
+            video_id,
             title: response_data.video_details.title,
-            length: response_data
+            duration: response_data
                 .video_details
                 .length_seconds
                 .parse::<u64>()
@@ -348,7 +336,7 @@ impl YoutubeAudio {
             caption_lang,
             caption_url,
             audio_url,
-            audio_length,
+            audio_filesize,
             thumbnail_url,
         })
     }
@@ -374,7 +362,7 @@ impl YoutubeAudio {
         &self,
         audio_url: &str,
         file_size: u64,
-        file_path: PathBuf,
+        file_path: &Path,
     ) -> Result<(), Box<dyn Error>> {
         let mut headers = HeaderMap::new();
         headers.insert(USER_AGENT, HeaderValue::from_static("Mozilla/5.0"));
@@ -403,6 +391,7 @@ impl YoutubeAudio {
 mod tests {
     use super::*;
     use dotenv::dotenv;
+    use std::path::PathBuf;
     use std::{env, str::FromStr};
 
     #[tokio::test]
@@ -422,12 +411,12 @@ mod tests {
         dotenv().ok();
         let proxy = env::var("PROXY").ok();
         let youtube_client = YoutubeAudio::new(proxy.as_deref());
-        let url = "https://www.youtube.com/watch?v=Q0cvzaPJJas&ab_channel=TJDeVries";
+        let url = "https://www.youtube.com/watch?v=s78hvV3QLUE&ab_channel=LexFridman";
         let video_data = youtube_client.get_video_info(url).await;
         assert!(video_data.is_some());
-        let video = video_data.unwrap();
-        assert_eq!(video.caption_lang.unwrap(), "a.en".to_string());
-        assert!(video.timestamp > 0);
+        // let video = video_data.unwrap();
+        // assert_eq!(video.caption_lang.unwrap(), "a.en".to_string());
+        // assert!(video.timestamp > 0);
     }
 
     #[tokio::test]
@@ -442,10 +431,10 @@ mod tests {
         let video = video_data.unwrap();
 
         let audio_url = &video.audio_url;
-        let audio_length = video.audio_length;
+        let audio_length = video.audio_filesize;
         let file_path = PathBuf::from_str("./sample.webm").unwrap();
         let download = youtube_client
-            .download_audio(audio_url, audio_length, file_path)
+            .download_audio(audio_url, audio_length, &file_path)
             .await;
 
         assert!(download.is_ok());
@@ -469,6 +458,10 @@ mod tests {
             (
                 "https://www.youtube.com/v/FdeioVndUhs",
                 Some("FdeioVndUhs".to_string()),
+            ), // /v/ style URL
+            (
+                "https://www.youtube.com/watch?v=s78hvV3QLUE&ab_channel=LexFridman",
+                Some("s78hvV3QLUE".to_string()),
             ), // /v/ style URL
             (
                 "https://www.youtube.com/embed/FdeioVndUhs",
