@@ -210,49 +210,54 @@ async fn download_with_retries(
 
 #[tauri::command(rename_all = "snake_case")]
 async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), String> {
-    let mut video_id = input_id;
-    if video_id == -1 {
-        let youtube_audio = YoutubeAudio::new(setting::get_proxy(&app).as_deref());
+    let mut _id = input_id;
+    let youtube_audio = YoutubeAudio::new(setting::get_proxy(&app).as_deref());
+    if _id == -1 {
         let audio_data = match youtube_audio.get_video_info(url).await {
             Some(data) => data,
             None => return Err("failed to parse audio info".to_string()),
         };
-
-        let video_info = get_video_metadata(&app, url).await?;
-        video_id = db::create_video(
-            app.state(),
-            url.to_string(),
-            audio_data.title,
-            audio_data.audio_length,
-            video_info.upload_date,
-        )?;
+        _id = db::create_video(app.state(), audio_data)?;
         app.emit("state", "update video")
             .map_err(|e| e.to_string())?
     }
-    if let Some(lang) = webvtt::get_sub_lang(&app, url).await {
-        let vtt_path = webvtt::run_yt_vtt(&app, url, &lang).await?;
-        let chunks = webvtt::extract_vtt_chunks(&vtt_path).await?;
-        handle_transcripts(&app, video_id, chunks).await?;
-    } else {
-        // most vulnerable part with yt-dlp
-        download_with_retries(&app, url, 5).await?;
+    match db::get_caption_with_id(app.state(), _id) {
+        Ok((Some(lang), Some(url))) => {
+            let subtitles = youtube_audio
+                .download_caption(&url, &lang)
+                .await
+                .map_err(|e| e.to_string())?;
 
-        let split_path = run_ffmpeg(&app).await?;
-        app.emit("stream", "[start]".to_string())
-            .map_err(|e| e.to_string())?;
-        let chunks = whisper::trancript(&app, &split_path).await?;
-        app.emit("stream", "[end]".to_string())
-            .map_err(|e| e.to_string())?;
-        let transcripts = chunks.join("\n\n");
-        db::update_video(
-            app.state(),
-            video_id,
-            "transcripts".to_string(),
-            transcripts,
-        )?;
-    }
+            return Ok(());
+        }
+        _ => {}
+    };
 
     Ok(())
+
+    // if let Some(lang) = webvtt::get_sub_lang(&app, url).await {
+    //     let vtt_path = webvtt::run_yt_vtt(&app, url, &lang).await?;
+    //     let chunks = webvtt::extract_vtt_chunks(&vtt_path).await?;
+    //     handle_transcripts(&app, video_id, chunks).await?;
+    // } else {
+    //     // most vulnerable part with yt-dlp
+    //     download_with_retries(&app, url, 5).await?;
+    //
+    //     let split_path = run_ffmpeg(&app).await?;
+    //     app.emit("stream", "[start]".to_string())
+    //         .map_err(|e| e.to_string())?;
+    //     let chunks = whisper::trancript(&app, &split_path).await?;
+    //     app.emit("stream", "[end]".to_string())
+    //         .map_err(|e| e.to_string())?;
+    //     let transcripts = chunks.join("\n\n");
+    //     db::update_video(
+    //         app.state(),
+    //         video_id,
+    //         "transcripts".to_string(),
+    //         transcripts,
+    //     )?;
+    // }
+    //
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

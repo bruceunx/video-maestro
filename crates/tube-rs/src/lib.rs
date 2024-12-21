@@ -123,14 +123,14 @@ struct StreamingData {
 pub struct AudioData {
     pub video_id: String,
     pub title: String,
-    pub length: u64,
+    pub duration: u64,
     pub timestamp: u64,
     pub keywords: Option<Vec<String>>,
     pub description: Option<String>,
     pub caption_lang: Option<String>,
     pub caption_url: Option<String>,
     pub audio_url: String,
-    pub audio_length: u64,
+    pub audio_filesize: u64,
     pub thumbnail_url: String,
 }
 
@@ -301,7 +301,7 @@ impl YoutubeAudio {
             all_formats.extend(adaptive_formats);
         }
 
-        let (audio_url, audio_length) = match all_formats
+        let (audio_url, audio_filesize) = match all_formats
             .into_iter()
             .filter(|format| format.mime_type.starts_with("audio"))
             .min_by_key(|format| format.bitrate)
@@ -341,7 +341,7 @@ impl YoutubeAudio {
         Some(AudioData {
             video_id,
             title: response_data.video_details.title,
-            length: response_data
+            duration: response_data
                 .video_details
                 .length_seconds
                 .parse::<u64>()
@@ -352,7 +352,7 @@ impl YoutubeAudio {
             caption_lang,
             caption_url,
             audio_url,
-            audio_length,
+            audio_filesize,
             thumbnail_url,
         })
     }
