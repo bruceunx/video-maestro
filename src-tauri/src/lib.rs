@@ -223,15 +223,31 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
     }
     match db::get_caption_with_id(app.state(), _id) {
         Ok((Some(lang), Some(url))) => {
-            let subtitles = youtube_audio
+            let _subtitles = youtube_audio
                 .download_caption(&url, &lang)
                 .await
                 .map_err(|e| e.to_string())?;
 
+            // handle the subtitles
             return Ok(());
         }
         _ => {}
     };
+
+    let (audio_url, audio_filesize) = db::get_audio_url_with_id(app.state(), _id)?;
+    let cache_dir = app.path().cache_dir().unwrap();
+    let temp_path = cache_dir.join("newscenter").join("temp.webm");
+    youtube_audio
+        .download_audio(&audio_url, audio_filesize, temp_path)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if audio_filesize > 25 * 1024 * 1024 {
+        // split the audio
+        todo!()
+    }
+
+    // handle the temp.webm
 
     Ok(())
 

@@ -142,13 +142,10 @@ pub fn get_caption_with_id(
     .map_err(|e| e.to_string())
 }
 
-pub fn get_audio_url_with_id(
-    db: State<DataBase>,
-    id: i64,
-) -> Result<(Option<String>, Option<String>), String> {
+pub fn get_audio_url_with_id(db: State<DataBase>, id: i64) -> Result<(String, u64), String> {
     let db = db.0.lock().map_err(|e| e.to_string())?;
     db.query_row(
-        "Select audio_lang, caption_url from audio Where id=?1",
+        "Select audio_url, audio_filesize from audio Where id=?1",
         params![id],
         |row| Ok((row.get(0)?, row.get(1)?)),
     )
