@@ -137,7 +137,7 @@ fn extract_id(url: &str) -> Option<String> {
 }
 fn parse_xml_with_auto(xml_string: &str) -> Result<Vec<SubtitleEntry>, Box<dyn Error>> {
     let mut reader = Reader::from_str(xml_string);
-    reader.config_mut().trim_text(true);
+    reader.config_mut().trim_text(false);
 
     let mut subtitles = Vec::new();
     let mut current_subtitle: Option<SubtitleEntry> = None;
@@ -189,7 +189,7 @@ fn parse_xml_with_auto(xml_string: &str) -> Result<Vec<SubtitleEntry>, Box<dyn E
 
 fn parse_xml(xml: &str) -> Result<Vec<SubtitleEntry>, Box<dyn Error>> {
     let mut reader = Reader::from_str(xml);
-    reader.config_mut().trim_text(true);
+    reader.config_mut().trim_text(false);
 
     let mut subtitles = Vec::new();
     let mut current_text = String::new();

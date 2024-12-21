@@ -74,9 +74,9 @@ pub fn create_video(db: State<DataBase>, audio_data: AudioData) -> Result<i64, S
     };
     db.execute(
         "INSERT INTO audio (
-            video_id, title, duration, timestamp, description,
+            video_id, title, duration, upload_date, description,
             caption_lang, caption_url, audio_url, audio_filesize, thumbnail_url, keywords
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             audio_data.video_id,
             audio_data.title,
