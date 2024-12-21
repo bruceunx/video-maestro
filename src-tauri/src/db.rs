@@ -27,7 +27,7 @@ pub struct Audio {
     video_id: String,
     title: String,
     duration: u64,
-    upload_date: String,
+    upload_date: u64,
     transcripts: Option<String>,
     summary: Option<String>,
     keywords: String,

@@ -3,7 +3,7 @@ export interface VideoData {
   video_id: string;
   title: string;
   duration: number;
-  upload_date: string;
+  upload_date: number;
   transcripts: string;
   summary: string;
   keywords: string;
