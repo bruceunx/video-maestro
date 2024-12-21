@@ -5,7 +5,7 @@ use reqwest::{
     Client, Proxy,
 };
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fs::File, io::Write, path::PathBuf};
+use std::{error::Error, fs::File, io::Write, path::Path};
 
 pub struct YoutubeAudio {
     client: Client,
@@ -378,7 +378,7 @@ impl YoutubeAudio {
         &self,
         audio_url: &str,
         file_size: u64,
-        file_path: PathBuf,
+        file_path: &Path,
     ) -> Result<(), Box<dyn Error>> {
         let mut headers = HeaderMap::new();
         headers.insert(USER_AGENT, HeaderValue::from_static("Mozilla/5.0"));
@@ -407,6 +407,7 @@ impl YoutubeAudio {
 mod tests {
     use super::*;
     use dotenv::dotenv;
+    use std::path::PathBuf;
     use std::{env, str::FromStr};
 
     #[tokio::test]
@@ -446,10 +447,10 @@ mod tests {
         let video = video_data.unwrap();
 
         let audio_url = &video.audio_url;
-        let audio_length = video.audio_length;
+        let audio_length = video.audio_filesize;
         let file_path = PathBuf::from_str("./sample.webm").unwrap();
         let download = youtube_client
-            .download_audio(audio_url, audio_length, file_path)
+            .download_audio(audio_url, audio_length, &file_path)
             .await;
 
         assert!(download.is_ok());

@@ -238,7 +238,7 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
     let cache_dir = app.path().cache_dir().unwrap();
     let temp_path = cache_dir.join("newscenter").join("temp.webm");
     youtube_audio
-        .download_audio(&audio_url, audio_filesize, temp_path)
+        .download_audio(&audio_url, audio_filesize, &temp_path)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -246,6 +246,8 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
         // split the audio
         todo!()
     }
+
+    let chunks = whisper::trancript(&app, &temp_path).await?;
 
     // handle the temp.webm
 
