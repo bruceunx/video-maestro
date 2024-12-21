@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "crates/tube-rs","src-tauri"]
+members = [ "crates/ffmpeg-audio", "crates/tube-rs","src-tauri"]
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -10,3 +10,14 @@ tokio = { version = "1", features = ["full"] }
 regex = {version = "1.11"}
 dotenv = "0.15"
 
+[profile.dev]
+incremental = true
+
+
+[profile.release]
+panic = "abort"   # Strip expensive panic clean-up logic
+codegen-units = 1 # Compile crates one after another so the compiler can optimize better
+lto = true        # Enables link to optimizations
+opt-level = "s"   # Optimize for binary size
+debug = true
+incremental = true

@@ -424,7 +424,7 @@ mod tests {
         dotenv().ok();
         let proxy = env::var("PROXY").ok();
         let youtube_client = YoutubeAudio::new(proxy.as_deref());
-        let url = "https://www.youtube.com/watch?v=Q0cvzaPJJas&ab_channel=TJDeVries";
+        let url = "https://www.youtube.com/watch?v=s78hvV3QLUE&t=4s"; //"https://www.youtube.com/watch?v=Q0cvzaPJJas&ab_channel=TJDeVries";
         let video_data = youtube_client.get_video_info(url).await;
         assert!(video_data.is_some());
 
