@@ -28,6 +28,7 @@ cache/
 src-tauri/binaries/
 
 **/*.webm
+**/*.wav
 **/.env
 
 !.github/
