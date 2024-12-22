@@ -8,6 +8,10 @@ pub struct WebmSplitter {
     chunk_duration: i64,
 }
 
+pub struct WavSplitter {
+    chunk_duration: u32,
+}
+
 impl WebmSplitter {
     pub fn new(duration_seconds: i64) -> Self {
         Self {
@@ -84,34 +88,38 @@ impl WebmSplitter {
     }
 }
 
-pub fn split_wav(
-    input_file: &Path,
-    output_dir: &Path,
-    chunk_duration_sec: u32,
-) -> Result<(), Box<dyn Error>> {
-    let reader = WavReader::open(input_file)?;
-    let spec = reader.spec();
-    let samples: Vec<i16> = reader.into_samples::<i16>().collect::<Result<_, _>>()?;
-
-    let sample_rate = spec.sample_rate;
-    let channels = spec.channels as usize;
-    let chunk_size = (chunk_duration_sec * sample_rate * channels as u32) as usize;
-
-    if !output_dir.is_dir() {
-        fs::create_dir_all(output_dir)?;
-    }
-
-    for (i, chunk) in samples.chunks(chunk_size).enumerate() {
-        let output_filename = format!("chunk_{:03}.wav", i + 1);
-        let output_file = output_dir.join(output_filename);
-        let mut writer = WavWriter::create(&output_file, spec)?;
-        for &sample in chunk {
-            writer.write_sample(sample)?;
+impl WavSplitter {
+    pub fn new(duration: u32) -> Self {
+        Self {
+            chunk_duration: duration,
         }
-        writer.finalize()?;
     }
 
-    Ok(())
+    pub fn split_wav(&self, input_file: &Path, output_dir: &Path) -> Result<(), Box<dyn Error>> {
+        let reader = WavReader::open(input_file)?;
+        let spec = reader.spec();
+        let samples: Vec<i16> = reader.into_samples::<i16>().collect::<Result<_, _>>()?;
+
+        let sample_rate = spec.sample_rate;
+        let channels = spec.channels as usize;
+        let chunk_size = (self.chunk_duration * sample_rate * channels as u32) as usize;
+
+        if !output_dir.is_dir() {
+            fs::create_dir_all(output_dir)?;
+        }
+
+        for (i, chunk) in samples.chunks(chunk_size).enumerate() {
+            let output_filename = format!("chunk_{:03}.wav", i + 1);
+            let output_file = output_dir.join(output_filename);
+            let mut writer = WavWriter::create(&output_file, spec)?;
+            for &sample in chunk {
+                writer.write_sample(sample)?;
+            }
+            writer.finalize()?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -133,10 +141,10 @@ mod tests {
 
     #[test]
     fn split_wav_works() {
+        let wav_splitter = WavSplitter::new(300);
         let input_file = PathBuf::from_str("./output.wav").unwrap();
         let output_dir = PathBuf::from_str("output_dir").unwrap();
-        let chunk_duration_sec = 120;
-        let result = split_wav(&input_file, &output_dir, chunk_duration_sec);
+        let result = wav_splitter.split_wav(&input_file, &output_dir);
         assert!(result.is_ok());
     }
 }
