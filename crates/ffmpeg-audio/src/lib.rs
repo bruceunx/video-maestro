@@ -4,7 +4,7 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-pub struct WebmSplitter {
+pub struct AudioSplitter {
     chunk_duration: i64,
 }
 
@@ -12,7 +12,7 @@ pub struct WavSplitter {
     chunk_duration: u32,
 }
 
-impl WebmSplitter {
+impl AudioSplitter {
     pub fn new(duration_seconds: i64) -> Self {
         Self {
             chunk_duration: duration_seconds,
@@ -24,6 +24,7 @@ impl WebmSplitter {
         if !output_dir.is_dir() {
             std::fs::create_dir_all(output_dir).map_err(|_| ffmpeg::Error::Other { errno: -1 })?;
         }
+        let file_suffix = input_file.extension().unwrap().to_str().unwrap();
 
         let mut input_ctx = ffmpeg::format::input(input_file)?;
         let audio_stream = input_ctx
@@ -36,13 +37,12 @@ impl WebmSplitter {
             ffmpeg::codec::context::Context::from_parameters(audio_parameters.clone()).unwrap();
 
         let total_duration = input_ctx.duration() as f64 / f64::from(ffmpeg::ffi::AV_TIME_BASE);
-        // let num_chunks = (total_duration / self.chunk_duration as f64) as i64;
         let num_chunks = (total_duration / self.chunk_duration as f64).ceil() as i64;
 
         let input_time_base = audio_stream.time_base();
         for chunk_index in 0..num_chunks {
             let start_time = chunk_index * self.chunk_duration;
-            let output_filename = format!("chunk_{:03}.m4a", chunk_index + 1);
+            let output_filename = format!("chunk_{:03}.{}", chunk_index + 1, file_suffix);
             let output_path = output_dir.join(output_filename);
             let mut output_ctx = ffmpeg::format::output(&output_path)?;
 
@@ -145,12 +145,12 @@ mod tests {
 
     #[test]
     fn split_audio_works() {
-        let audio_splitter = WebmSplitter::new(60 * 10);
-        let input_file = PathBuf::from_str("./sample.m4a").unwrap();
+        let audio_splitter = AudioSplitter::new(60 * 10);
+        // let input_file = PathBuf::from_str("./sample.webm").unwrap();
+        let input_file = PathBuf::from_str("./sample.wav").unwrap();
         let output_dir = PathBuf::from_str("output_dir").unwrap();
-        let _result = audio_splitter.split(&input_file, &output_dir);
-        // assert!(result.is_ok());
-        assert_eq!(1, 2);
+        let result = audio_splitter.split(&input_file, &output_dir);
+        assert!(result.is_ok());
     }
 
     #[test]
