@@ -23,7 +23,8 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 rusqlite = { version = "0.32", features = ["bundled"] }
-tube-rs = { path="../crates/tube-rs/" }
+tube-rs = { path = "../crates/tube-rs/" }
+ffmpeg-audio = { path = "../crates/ffmpeg-audio/" }
 
 serde.workspace = true
 serde_json.workspace = true

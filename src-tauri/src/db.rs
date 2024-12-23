@@ -55,6 +55,7 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DataBase, DataBaseError> {
             caption_url TEXT,
             audio_url TEXT NOT NULL,
             audio_filesize INTEGER NOT NULL,
+            mime_type TEXT NOT NULL,
             thumbnail_url TEXT NOT NULL,
             transcripts TEXT,
             summary TEXT,
@@ -75,8 +76,8 @@ pub fn create_video(db: State<DataBase>, audio_data: AudioData) -> Result<i64, S
     db.execute(
         "INSERT INTO audio (
             video_id, title, duration, upload_date, description,
-            caption_lang, caption_url, audio_url, audio_filesize, thumbnail_url, keywords
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            caption_lang, caption_url, audio_url, audio_filesize, thumbnail_url, keywords, mime_type
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         params![
             audio_data.video_id,
             audio_data.title,
@@ -89,6 +90,7 @@ pub fn create_video(db: State<DataBase>, audio_data: AudioData) -> Result<i64, S
             audio_data.audio_filesize,
             audio_data.thumbnail_url,
             keywords,
+            audio_data.mime_type,
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -141,12 +143,15 @@ pub fn get_caption_with_id(
     .map_err(|e| e.to_string())
 }
 
-pub fn get_audio_url_with_id(db: State<DataBase>, id: i64) -> Result<(String, u64), String> {
+pub fn get_audio_url_with_id(
+    db: State<DataBase>,
+    id: i64,
+) -> Result<(String, u64, String, u64), String> {
     let db = db.0.lock().map_err(|e| e.to_string())?;
     db.query_row(
-        "Select audio_url, audio_filesize from audio Where id=?1",
+        "Select audio_url, audio_filesize, mime_type, duration from audio Where id=?1",
         params![id],
-        |row| Ok((row.get(0)?, row.get(1)?)),
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
     )
     .map_err(|e| e.to_string())
 }
