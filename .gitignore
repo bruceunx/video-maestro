@@ -29,6 +29,7 @@ src-tauri/binaries/
 
 **/*.webm
 **/*.wav
+**/*.m4a
 **/.env
 
 !.github/

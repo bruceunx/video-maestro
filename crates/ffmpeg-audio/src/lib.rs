@@ -31,57 +31,44 @@ impl WebmSplitter {
             .best(ffmpeg::media::Type::Audio)
             .ok_or(ffmpeg::Error::StreamNotFound)?;
 
-        let audio_stream_index = audio_stream.index();
-        let total_duration = input_ctx.duration() as f64 / f64::from(ffmpeg::ffi::AV_TIME_BASE);
+        let audio_parameters = audio_stream.parameters();
+        let codec =
+            ffmpeg::codec::context::Context::from_parameters(audio_parameters.clone()).unwrap();
 
+        let total_duration = input_ctx.duration() as f64 / f64::from(ffmpeg::ffi::AV_TIME_BASE);
         let num_chunks = (total_duration / self.chunk_duration as f64) as i64;
 
-        let mut output_files = Vec::new();
-
-        let input_codec_params = audio_stream.parameters();
-        let time_base = audio_stream.time_base();
-
         for chunk_index in 0..num_chunks {
-            let encoder = ffmpeg::codec::encoder::find(input_codec_params.id())
-                .ok_or(ffmpeg::Error::EncoderNotFound)?;
-
             let start_time = chunk_index * self.chunk_duration;
-
-            let output_filename = format!("chunk_{:03}.webm", chunk_index + 1);
+            let output_filename = format!("chunk_{:03}.m4a", chunk_index + 1);
             let output_path = output_dir.join(output_filename);
-            output_files.push(output_path.clone());
-
             let mut output_ctx = ffmpeg::format::output(&output_path)?;
 
-            let mut output_stream = output_ctx.add_stream(encoder)?;
-            output_stream.set_time_base(time_base);
-
-            output_ctx.write_header()?;
+            let mut output_stream = output_ctx.add_stream(codec.codec())?;
+            output_stream.set_parameters(audio_parameters.clone());
 
             let start_ts = start_time * ffmpeg::ffi::AV_TIME_BASE as i64;
-
             let end_time = ((start_time + self.chunk_duration) * ffmpeg::ffi::AV_TIME_BASE as i64)
                 .min(input_ctx.duration());
 
             input_ctx.seek(start_ts, ..start_ts)?;
 
+            output_ctx.set_metadata(input_ctx.metadata().to_owned());
+            output_ctx.write_header()?;
             for (stream, packet) in input_ctx.packets() {
-                if stream.index() == audio_stream_index {
-                    let pts = packet.pts().unwrap_or(0);
-                    let current_time = pts * ffmpeg::ffi::AV_TIME_BASE as i64
-                        / stream.time_base().denominator() as i64;
+                let pts = packet.pts().unwrap_or(0);
+                let current_time = pts * ffmpeg::ffi::AV_TIME_BASE as i64
+                    / stream.time_base().denominator() as i64;
 
-                    if current_time >= end_time {
-                        break;
-                    }
-
-                    let mut new_packet = packet.clone();
-                    new_packet.set_position(-1);
-                    new_packet.set_stream(0);
-                    new_packet.write_interleaved(&mut output_ctx)?;
+                if current_time >= end_time {
+                    break;
                 }
+                let mut new_packet = packet.clone();
+                new_packet.set_pts(Some(pts - start_time));
+                new_packet.set_position(-1);
+                new_packet.set_stream(0);
+                new_packet.write_interleaved(&mut output_ctx)?;
             }
-
             output_ctx.write_trailer()?;
         }
         Ok(())
@@ -130,13 +117,12 @@ mod tests {
 
     #[test]
     fn split_audio_works() {
-        let audio_splitter = WebmSplitter::new(300);
-
-        let input_file = PathBuf::from_str("./sample.webm").unwrap();
+        let audio_splitter = WebmSplitter::new(60 * 10);
+        let input_file = PathBuf::from_str("./sample.m4a").unwrap();
         let output_dir = PathBuf::from_str("output_dir").unwrap();
-        let result = audio_splitter.split(&input_file, &output_dir);
-
-        assert!(result.is_ok());
+        let _result = audio_splitter.split(&input_file, &output_dir);
+        // assert!(result.is_ok());
+        assert_eq!(1, 2);
     }
 
     #[test]
@@ -152,7 +138,7 @@ mod tests {
     fn test_ffmpeg() {
         ffmpeg::init().unwrap();
 
-        let input_file = PathBuf::from_str("./sample.webm").expect("failed to find the file");
+        let input_file = PathBuf::from_str("./sample.m4a").expect("failed to find the file");
         match ffmpeg::format::input(&input_file) {
             Ok(context) => {
                 let stream = context.streams().best(ffmpeg::media::Type::Audio).unwrap();
