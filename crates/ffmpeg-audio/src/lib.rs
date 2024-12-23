@@ -36,8 +36,10 @@ impl WebmSplitter {
             ffmpeg::codec::context::Context::from_parameters(audio_parameters.clone()).unwrap();
 
         let total_duration = input_ctx.duration() as f64 / f64::from(ffmpeg::ffi::AV_TIME_BASE);
-        let num_chunks = (total_duration / self.chunk_duration as f64) as i64;
+        // let num_chunks = (total_duration / self.chunk_duration as f64) as i64;
+        let num_chunks = (total_duration / self.chunk_duration as f64).ceil() as i64;
 
+        let input_time_base = audio_stream.time_base();
         for chunk_index in 0..num_chunks {
             let start_time = chunk_index * self.chunk_duration;
             let output_filename = format!("chunk_{:03}.m4a", chunk_index + 1);
@@ -46,8 +48,12 @@ impl WebmSplitter {
 
             let mut output_stream = output_ctx.add_stream(codec.codec())?;
             output_stream.set_parameters(audio_parameters.clone());
+            output_stream.set_time_base(input_time_base);
 
             let start_ts = start_time * ffmpeg::ffi::AV_TIME_BASE as i64;
+
+            // let start_ts = (start_time as f64 * input_time_base.denominator() as f64
+            //     / input_time_base.numerator() as f64) as i64;
             let end_time = ((start_time + self.chunk_duration) * ffmpeg::ffi::AV_TIME_BASE as i64)
                 .min(input_ctx.duration());
 
@@ -55,6 +61,10 @@ impl WebmSplitter {
 
             output_ctx.set_metadata(input_ctx.metadata().to_owned());
             output_ctx.write_header()?;
+
+            let mut last_pts = 0;
+            let mut pts_offset = 0;
+            let mut first_pts = None;
             for (stream, packet) in input_ctx.packets() {
                 let pts = packet.pts().unwrap_or(0);
                 let current_time = pts * ffmpeg::ffi::AV_TIME_BASE as i64
@@ -64,9 +74,27 @@ impl WebmSplitter {
                     break;
                 }
                 let mut new_packet = packet.clone();
-                new_packet.set_pts(Some(pts - start_time));
                 new_packet.set_position(-1);
                 new_packet.set_stream(0);
+
+                if let Some(first_pts_value) = first_pts {
+                    let adjusted_pts = pts - first_pts_value;
+
+                    if adjusted_pts < last_pts {
+                        pts_offset = last_pts;
+                    }
+
+                    let final_pts = adjusted_pts + pts_offset;
+                    new_packet.set_pts(Some(final_pts));
+                    new_packet.set_dts(Some(final_pts));
+
+                    last_pts = final_pts;
+                } else {
+                    first_pts = Some(pts);
+                    new_packet.set_pts(Some(0));
+                    new_packet.set_dts(Some(0));
+                }
+
                 new_packet.write_interleaved(&mut output_ctx)?;
             }
             output_ctx.write_trailer()?;
