@@ -69,5 +69,6 @@ pnpm tauri dev
 
 ## TODO
 
+- [ ] add workflow to github
 - [x] develop youtube parser to replace yt-dlp
-- [ ] use [rust-ffmpeg](https://github.com/CapSoftware/rust-ffmpeg) instead sidercar with ffmpeg
+- [x] use [rust-ffmpeg](https://github.com/CapSoftware/rust-ffmpeg) instead sidercar with ffmpeg

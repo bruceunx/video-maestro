@@ -1,6 +1,6 @@
 pub mod webvtt;
 use dotenv::dotenv;
-use tauri::{Emitter, Manager};
+use tauri::{utils::mime_type, Emitter, Manager};
 mod db;
 mod setting;
 mod whisper;
@@ -31,8 +31,8 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
         };
         _id = db::create_video(app.state(), audio_data)?;
         app.emit("state", "update video")
-            .map_err(|e| e.to_string())?
-    }
+            .map_err(|e| e.to_string())?;
+    };
     match db::get_caption_with_id(app.state(), _id) {
         Ok((Some(lang), Some(url))) => {
             let subtitles = youtube_audio
@@ -56,18 +56,32 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
         _ => {}
     };
 
-    let (audio_url, audio_filesize) = db::get_audio_url_with_id(app.state(), _id)?;
+    let (audio_url, audio_filesize, mime_type, duration) =
+        db::get_audio_url_with_id(app.state(), _id)?;
     let cache_dir = app.path().cache_dir().unwrap();
-    let temp_path = cache_dir.join("newscenter").join("temp.webm");
+    let file_path = if mime_type.contains("webm") {
+        "temp.webm"
+    } else {
+        "temp.m4a"
+    };
+    let mut temp_path = cache_dir.join("newscenter").join(file_path);
     youtube_audio
         .download_audio(&audio_url, audio_filesize, &temp_path)
         .await
         .map_err(|e| e.to_string())?;
 
     if audio_filesize > 25 * 1024 * 1024 {
-        // split the audio
-        todo!()
-    }
+        let output_dir = cache_dir.join("chunk");
+        let bytes_per_second = audio_filesize as f64 / duration as f64;
+        let chunk_duration = ((20 * 1024 * 1024) as f64 / bytes_per_second) as i64;
+
+        let auido_splitter = ffmpeg_audio::AudioSplitter::new(chunk_duration);
+        auido_splitter
+            .split(&temp_path, &output_dir)
+            .map_err(|e| e.to_string())?;
+
+        temp_path = output_dir;
+    };
 
     app.emit("stream", "[start]".to_string())
         .map_err(|e| e.to_string())?;
