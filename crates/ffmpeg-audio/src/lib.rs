@@ -147,4 +147,63 @@ mod tests {
         let result = wav_splitter.split_wav(&input_file, &output_dir);
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_ffmpeg() {
+        ffmpeg::init().unwrap();
+
+        let input_file = PathBuf::from_str("./sample.webm").expect("failed to find the file");
+        match ffmpeg::format::input(&input_file) {
+            Ok(context) => {
+                let stream = context.streams().best(ffmpeg::media::Type::Audio).unwrap();
+
+                let total_duration =
+                    context.duration() as f64 / f64::from(ffmpeg::ffi::AV_TIME_BASE);
+
+                println!("stream index {}:", stream.index());
+                println!("\ttime_base: {}", stream.time_base());
+                println!("\tstart_time: {}", stream.start_time());
+                println!("\tduration (stream timebase): {}", stream.duration());
+                println!(
+                    "\tduration (seconds): {:.2}",
+                    stream.duration() as f64 * f64::from(stream.time_base())
+                );
+                println!("\ttotal duration {:.2}", total_duration);
+                println!("\tframes: {}", stream.frames());
+                println!("\tdisposition: {:?}", stream.disposition());
+                println!("\tdiscard: {:?}", stream.discard());
+                println!("\trate: {}", stream.rate());
+
+                let codec =
+                    ffmpeg::codec::context::Context::from_parameters(stream.parameters()).unwrap();
+                println!("\tmedium: {:?}", codec.medium());
+                println!("\tid: {:?}", codec.id());
+
+                if let Ok(audio) = codec.decoder().audio() {
+                    println!("\tbit_rate: {}", audio.bit_rate());
+                    println!("\tmax_rate: {}", audio.max_bit_rate());
+                    println!("\tdelay: {}", audio.delay());
+                    println!("\taudio.rate: {}", audio.rate());
+                    println!("\taudio.channels: {}", audio.channels());
+                    println!("\taudio.format: {:?}", audio.format());
+                    println!("\taudio.frames: {}", audio.frames());
+                    println!("\taudio.align: {}", audio.align());
+                    println!("\taudio.channel_layout: {:?}", audio.channel_layout());
+                }
+
+                if let Some(stream) = context.streams().best(ffmpeg::media::Type::Audio) {
+                    println!("Best subtitle stream index: {}", stream.index());
+                } else {
+                    println!("error to find the best stream");
+                };
+                println!(
+                    "duration (seconds): {:.2}",
+                    context.duration() as f64 / f64::from(ffmpeg::ffi::AV_TIME_BASE)
+                );
+            }
+            Err(e) => eprintln!("cannot get content {}", e),
+        };
+
+        assert_eq!(1, 2);
+    }
 }
