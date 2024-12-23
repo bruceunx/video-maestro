@@ -1,0 +1,9 @@
+[package]
+name = "ffmpeg-audio"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ffmpeg-next = "7.1"
+hound = "3.5"
+webm-iterable = "0.6"

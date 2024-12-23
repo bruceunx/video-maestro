@@ -119,6 +119,7 @@ pub struct AudioData {
     pub audio_url: String,
     pub audio_filesize: u64,
     pub thumbnail_url: String,
+    pub mime_type: String,
 }
 
 pub struct SubtitleEntry {
@@ -283,12 +284,13 @@ impl YoutubeAudio {
             all_formats.extend(adaptive_formats);
         }
 
-        let (last_modified, audio_url, audio_filesize) = match all_formats
+        let (mime_type, last_modified, audio_url, audio_filesize) = match all_formats
             .into_iter()
             .filter(|format| format.mime_type.starts_with("audio"))
             .min_by_key(|format| format.bitrate)
         {
             Some(format) => (
+                format.mime_type,
                 format.last_modified.parse::<u64>().unwrap(),
                 format.url,
                 format
@@ -337,6 +339,7 @@ impl YoutubeAudio {
             caption_url,
             audio_url,
             audio_filesize,
+            mime_type,
             thumbnail_url,
         })
     }
@@ -424,7 +427,7 @@ mod tests {
         dotenv().ok();
         let proxy = env::var("PROXY").ok();
         let youtube_client = YoutubeAudio::new(proxy.as_deref());
-        let url = "https://www.youtube.com/watch?v=Q0cvzaPJJas&ab_channel=TJDeVries";
+        let url = "https://www.youtube.com/watch?v=s78hvV3QLUE&t=4s"; //"https://www.youtube.com/watch?v=Q0cvzaPJJas&ab_channel=TJDeVries";
         let video_data = youtube_client.get_video_info(url).await;
         assert!(video_data.is_some());
 
@@ -432,7 +435,11 @@ mod tests {
 
         let audio_url = &video.audio_url;
         let audio_length = video.audio_filesize;
-        let file_path = PathBuf::from_str("./sample.webm").unwrap();
+        let file_path = if video.mime_type.contains("webm") {
+            PathBuf::from_str("./sample.webm").unwrap()
+        } else {
+            PathBuf::from_str("./sample.m4a").unwrap()
+        };
         let download = youtube_client
             .download_audio(audio_url, audio_length, &file_path)
             .await;
