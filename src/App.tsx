@@ -18,6 +18,7 @@ function App() {
   const [url, setUrl] = React.useState<string>("");
 
   const [selectedLanguage, setSelectedLanguage] = React.useState<string>("en");
+  const [imgUrl, setImgUrl] = React.useState<string | null>(null);
 
   const {
     setInProgress,
@@ -36,8 +37,10 @@ function App() {
 
   React.useEffect(() => {
     if (currentVideo !== null) {
+      setImgUrl(null);
       setContent(currentVideo.transcripts || "");
       setSummary(currentVideo.summary || "");
+      handle_new_video_image(currentVideo.thumbnail_url);
     } else {
       setContent("");
       setSummary("");
@@ -49,12 +52,27 @@ function App() {
     deleteVideo(currentVideo.id);
   }
 
+  async function handle_new_video_image(url: string) {
+    try {
+      const imageBytes: ArrayBufferLike = await invoke("fetch_image", {
+        url,
+      });
+      const blob = new Blob([new Uint8Array(imageBytes)], {
+        type: "image/png",
+      });
+      const imageUrl = URL.createObjectURL(blob);
+      setImgUrl(imageUrl);
+    } catch (error) {
+      console.error("Failed to load image:", error);
+    }
+  }
+
   async function handle_transcript() {
     try {
       let parse_url;
       let input_id = -1;
       if (currentVideo !== null && currentVideo.transcripts === null) {
-        parse_url = currentVideo.url;
+        parse_url = currentVideo.video_id;
         input_id = currentVideo.id;
       } else {
         if (url.trim().length === 0) return;
@@ -89,7 +107,6 @@ function App() {
     try {
       setInProgress(true);
       await invoke("run_summary", {
-        context: currentVideo.transcripts,
         video_id: currentVideo.id,
         language: selectedLanguage,
         auto: auto,
@@ -187,7 +204,7 @@ function App() {
               disabled={inProgress}
             >
               <Captions className="w-7 h-7" />
-              <span>Transcripts</span>
+              <span>Transcript</span>
             </button>
           </div>
 
@@ -201,6 +218,12 @@ function App() {
                   <p className="text-right text-sm pr-2 text-gray-700">
                     {formatDate(currentVideo.upload_date)}
                   </p>
+                  {imgUrl && (
+                    <img
+                      src={imgUrl}
+                      className="mx-auto w-70 h-40 rounded-lg"
+                    />
+                  )}
                 </>
               )}
               <StreamText content={content} />

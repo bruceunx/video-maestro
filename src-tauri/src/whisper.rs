@@ -5,19 +5,19 @@ use reqwest::{Client, Proxy, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::path::Path;
-use tauri::Emitter;
 use tauri::Manager;
+use tauri::{Emitter, State};
 use tokio::fs::{self, File};
 use tokio::io::AsyncReadExt;
 
-use super::db;
+use super::db::{self, DataBase};
 use super::setting;
 
 // define the transcription struct with only text in my interest
 #[derive(Debug, Deserialize)]
 struct TranscriptionResponse {
     text: String,
-    // segments: Vec<Segment>,
+    segments: Vec<Segment>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -70,7 +70,7 @@ pub async fn remove_files_from_directory(dir_path: &Path) -> Result<()> {
     Ok(())
 }
 
-async fn create_client(app: &tauri::AppHandle) -> Result<Client> {
+pub async fn create_client(app: &tauri::AppHandle) -> Result<Client> {
     let client = match setting::get_proxy(app) {
         Some(proxy_url) => Client::builder().proxy(Proxy::https(proxy_url)?).build()?,
         None => Client::builder().build()?,
@@ -81,36 +81,70 @@ async fn create_client(app: &tauri::AppHandle) -> Result<Client> {
 // System Prompt: summarize with mindmap?
 //
 //
-// #[derive(Debug, Deserialize)]
-// struct Segment {
-//     text: String,
-//     start: f64,
-//     end: f64,
-// }
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Segment {
+    pub text: String,
+    pub start: f64,
+    pub end: f64,
+}
+
+pub fn transform_segments_to_chunks(segments: Vec<Segment>) -> Vec<String> {
+    let mut chunks = Vec::new();
+
+    let mut current_string = String::new();
+
+    let mut end_time = 0.0;
+    for segment in segments {
+        if current_string.len() + segment.text.len() > 3000 {
+            chunks.push(current_string.clone());
+            current_string.clear();
+        };
+
+        if current_string.len() + segment.text.len() > 2000 {
+            if segment.start - end_time > 7.0 {
+                chunks.push(current_string.clone());
+                current_string.clear();
+            }
+        }
+
+        current_string.push_str(&segment.text);
+        end_time = segment.end;
+    }
+
+    chunks
+}
+
 //
 //
 //
 fn get_system_prompt(language: &str) -> String {
     let prompt = match language {
-        "es" => "Eres un resumidor multilingüe avanzado. Tu tarea es condensar contenido largo en un resumen claro y conciso en español. Si el contenido no está en español, tradúcelo antes de resumir.",
-        "fr" => "Vous êtes un résumé multilingue avancé. Votre tâche consiste à condenser un contenu long en un résumé clair et concis en français. Si le contenu n'est pas en français, traduisez-le avant de le résumer.",
-        "de" => "Sie sind ein fortgeschrittener mehrsprachiger Zusammenfasser. Ihre Aufgabe ist es, lange Inhalte in eine klare und prägnante Zusammenfassung auf Deutsch zu kondensieren. Wenn der Inhalt nicht auf Deutsch ist, übersetzen Sie ihn vor der Zusammenfassung.",
-        "zh" => "您是一位高级多语言摘要工具。您的任务是将长内容浓缩成简洁明了的中文摘要。如果内容不是中文，请先翻译再总结。",
-        "zh-TW" => "您是一位高級多語言摘要工具。您的任務是將長內容濃縮成簡潔明瞭的繁體中文摘要。如果內容不是繁體中文，請先翻譯再總結。",
-        "ar" => "أنت مُلخص متعدد اللغات متقدم. مهمتك هي تلخيص المحتوى الطويل إلى ملخص واضح وموجز باللغة العربية. إذا لم يكن المحتوى باللغة العربية، قم بترجمته قبل تلخيصه.",
-        "ru" => "Вы — продвинутый многоязычный резюмер. Ваша задача — сжать длинный контент в четкое и краткое резюме на русском языке. Если контент не на русском, переведите его перед резюмированием.",
-        "ja" => "あなたは高度な多言語要約者です。長いコンテンツを日本語で簡潔で明確な要約に凝縮するのがあなたの任務です。内容が日本語でない場合、翻訳してから要約してください。",
-        _ => "You are an advanced multilingual summarizer. Your task is to condense long content into a clear and concise summary in English. If the content is not in English, translate it before summarizing.",
-    };
+    "es" => "Eres un resumidor multilingüe avanzado. Tu tarea es resumir el contenido proporcionado en español. Si hay una descripción disponible, úsala como contexto para mejorar el resumen. Para contenido corto, proporciona un resumen breve que capture los puntos clave. Para contenido largo, crea un resumen más detallado. Si el contenido no está en español, tradúcelo antes de resumir.",
 
+    "fr" => "Vous êtes un résumé multilingue avancé. Votre tâche est de résumer le contenu fourni en français. Si une description est disponible, utilisez-la comme contexte pour améliorer le résumé. Pour un contenu court, fournissez un bref résumé capturant les points clés. Pour un contenu long, créez un résumé plus détaillé. Si le contenu n'est pas en français, traduisez-le avant de le résumer.",
+
+    "de" => "Sie sind ein fortgeschrittener mehrsprachiger Zusammenfasser. Ihre Aufgabe ist es, den bereitgestellten Inhalt auf Deutsch zusammenzufassen. Wenn eine Beschreibung verfügbar ist, nutzen Sie diese als Kontext für eine bessere Zusammenfassung. Bei kurzem Inhalt erstellen Sie eine knappe Zusammenfassung der Kernpunkte. Bei langem Inhalt erstellen Sie eine ausführlichere Zusammenfassung. Wenn der Inhalt nicht auf Deutsch ist, übersetzen Sie ihn vor der Zusammenfassung.",
+
+    "zh" => "您是一位高级多语言摘要工具。您的任务是用中文总结所提供的内容。如果有描述信息，请将其作为背景来改进摘要。对于简短内容，请提供捕捉要点的简明总结。对于较长内容，请创建更详细的摘要。如果内容不是中文，请先翻译再总结。",
+
+    "zh-TW" => "您是一位高級多語言摘要工具。您的任務是用繁體中文總結所提供的內容。如果有描述資訊，請將其作為背景來改進摘要。對於簡短內容，請提供捕捉要點的簡明總結。對於較長內容，請創建更詳細的摘要。如果內容不是繁體中文，請先翻譯再總結。",
+
+    "ar" => "أنت مُلخص متعدد اللغات متقدم. مهمتك هي تلخيص المحتوى المقدم باللغة العربية. إذا كان هناك وصف متاح، استخدمه كسياق لتحسين الملخص. للمحتوى القصير، قدم ملخصاً موجزاً يلتقط النقاط الرئيسية. للمحتوى الطويل، قم بإنشاء ملخص أكثر تفصيلاً. إذا لم يكن المحتوى باللغة العربية، قم بترجمته قبل تلخيصه.",
+
+    "ru" => "Вы — продвинутый многоязычный резюмер. Ваша задача — создать резюме предоставленного контента на русском языке. Если доступно описание, используйте его как контекст для улучшения резюме. Для короткого контента предоставьте краткое резюме, охватывающее ключевые моменты. Для длинного контента создайте более подробное резюме. Если контент не на русском, переведите его перед резюмированием.",
+
+    "ja" => "あなたは高度な多言語要約者です。提供されたコンテンツを日本語で要約するのがあなたの任務です。説明が利用可能な場合は、それをコンテキストとして要約の改善に使用してください。短いコンテンツの場合は、重要なポイントを捉えた簡潔な要約を提供し、長いコンテンツの場合は、より詳細な要約を作成してください。内容が日本語でない場合、翻訳してから要約してください。",
+
+    _ => "You are an advanced multilingual summarizer. Your task is to summarize the provided content in English. If a description is available, use it as context to improve the summary. For short content, provide a brief summary capturing the key points. For longer content, create a more detailed summary. If the content is not in English, translate it before summarizing.",
+};
     prompt.to_string()
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn run_summary(
     app: tauri::AppHandle,
+    db: State<'_, DataBase>,
     video_id: i64, // id in database
-    context: String,
     language: String,
     auto: bool,
 ) -> Result<(), String> {
@@ -119,13 +153,17 @@ pub async fn run_summary(
         lang = "auto".to_string()
     }
 
-    let chunks: Vec<String> = context.split("\n\n").map(|s| s.to_string()).collect();
+    let (transcripts, description) = db::get_subtitle_with_id(db, video_id)?;
+    let subtitles: Vec<Segment> = serde_json::from_str(&transcripts).map_err(|e| e.to_string())?;
+
+    let chunks = transform_segments_to_chunks(subtitles);
+
     let mut summary = Vec::new();
 
     app.emit("summary", "[start]".to_string())
         .map_err(|e| e.to_string())?;
     for chunk in chunks {
-        summary.push(chat_stream(&app, &chunk, &lang).await?)
+        summary.push(chat_stream(&app, &chunk, &lang, &description).await?)
     }
     app.emit("summary", "[end]".to_string())
         .map_err(|e| e.to_string())?;
@@ -144,6 +182,7 @@ pub async fn chat_stream(
     app: &tauri::AppHandle,
     user_message: &str,
     lang: &str,
+    description: &str,
 ) -> Result<String, String> {
     let settings_value = setting::get_settings(app);
 
@@ -159,6 +198,8 @@ pub async fn chat_stream(
 
     let client = create_client(app).await.map_err(|e| e.to_string())?;
 
+    let message = format!("short description for the whole content: {description}. and with content or partial content as following: {user_message}");
+
     let request = ChatRequest {
         messages: vec![
             Message {
@@ -167,7 +208,7 @@ pub async fn chat_stream(
             },
             Message {
                 role: Role::User,
-                content: user_message.to_string(),
+                content: message,
             },
         ],
         model: llm_model.to_string(),
@@ -246,13 +287,12 @@ async fn transcribe_audio(
         }
         _ => {
             let error_text = response.text().await?;
-            println!("error from whisper {}", error_text);
             anyhow::bail!("API error {} - {}", status, error_text);
         }
     }
 }
 
-pub async fn trancript(app: &tauri::AppHandle, audio_path: &Path) -> Result<Vec<String>, String> {
+pub async fn trancript(app: &tauri::AppHandle, audio_path: &Path) -> Result<Vec<Segment>, String> {
     let settings_value = setting::get_settings(app);
 
     let (api_url, model_name, api_key) = match settings_value {
@@ -272,20 +312,27 @@ pub async fn trancript(app: &tauri::AppHandle, audio_path: &Path) -> Result<Vec<
         match transcribe_audio(app, &api_key, audio_path_str, &model_name, &api_url).await {
             Ok(response) => {
                 app.emit("stream", response.text.clone()).unwrap();
-                chunks.push(response.text);
+                chunks.extend(response.segments);
             }
             Err(e) => return Err(e.to_string()),
         };
     } else {
         let mut dir = fs::read_dir(audio_path).await.map_err(|e| e.to_string())?;
 
+        let mut end_time = 0.0;
         while let Some(entry) = dir.next_entry().await.map_err(|e| e.to_string())? {
             let audio_path = entry.path();
             let audio_path_str = audio_path.to_str().unwrap();
             match transcribe_audio(app, &api_key, audio_path_str, &model_name, &api_url).await {
                 Ok(response) => {
                     app.emit("stream", response.text.clone()).unwrap();
-                    chunks.push(response.text);
+                    let mut current_end = 0.0;
+                    for mut segment in response.segments {
+                        segment.start += end_time;
+                        current_end = segment.end;
+                        chunks.push(segment);
+                    }
+                    end_time = current_end;
                 }
                 Err(_) => continue,
             };

@@ -1,3 +1,4 @@
+use crate::whisper::{self, Segment};
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
@@ -32,7 +33,7 @@ pub struct Audio {
     summary: Option<String>,
     keywords: String,
     timestamp: i64,
-    thumbail_url: String,
+    thumbnail_url: String,
 }
 
 pub fn init_db(app_handle: &AppHandle) -> Result<DataBase, DataBaseError> {
@@ -98,6 +99,17 @@ pub fn create_video(db: State<DataBase>, audio_data: AudioData) -> Result<i64, S
     Ok(db_id)
 }
 
+fn transform_transripts_str(transcripts: Option<String>) -> Option<String> {
+    match transcripts {
+        Some(data) => {
+            let segments: Vec<Segment> = serde_json::from_str(&data).unwrap();
+            let chunks = whisper::transform_segments_to_chunks(segments);
+            Some(chunks.join("\n\n"))
+        }
+        None => None,
+    }
+}
+
 #[tauri::command]
 pub fn get_videos(db: State<DataBase>) -> Result<Vec<Audio>, String> {
     let db = db.0.lock().map_err(|e| e.to_string())?;
@@ -114,11 +126,11 @@ pub fn get_videos(db: State<DataBase>) -> Result<Vec<Audio>, String> {
                 title: row.get(2)?,
                 duration: row.get(3)?,
                 upload_date: row.get(4)?,
-                transcripts: row.get(5).ok(),
+                transcripts: transform_transripts_str(row.get(5).ok()),
                 summary: row.get(6).ok(),
                 keywords: row.get(7)?,
                 timestamp: row.get(8)?,
-                thumbail_url: row.get(9)?,
+                thumbnail_url: row.get(9)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -152,6 +164,16 @@ pub fn get_audio_url_with_id(
         "Select audio_url, audio_filesize, mime_type, duration from audio Where id=?1",
         params![id],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+    )
+    .map_err(|e| e.to_string())
+}
+
+pub fn get_subtitle_with_id(db: State<DataBase>, id: i64) -> Result<(String, String), String> {
+    let db = db.0.lock().map_err(|e| e.to_string())?;
+    db.query_row(
+        "Select transcripts, description from audio Where id=?1",
+        params![id],
+        |row| Ok((row.get(0)?, row.get(1)?)),
     )
     .map_err(|e| e.to_string())
 }

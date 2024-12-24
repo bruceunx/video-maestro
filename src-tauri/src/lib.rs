@@ -1,23 +1,22 @@
 pub mod webvtt;
 use dotenv::dotenv;
-use tauri::{utils::mime_type, Emitter, Manager};
+use tauri::{Emitter, Manager};
 mod db;
 mod setting;
 mod whisper;
 use tube_rs::{SubtitleEntry, YoutubeAudio};
+use whisper::Segment;
 
-fn transform_subtitles_to_chunks(subtitles: Vec<SubtitleEntry>) -> Result<Vec<String>, String> {
-    let mut chunks = Vec::new();
-    let mut current_text = String::new();
+fn transform_subtitles_to_segments(subtitles: Vec<SubtitleEntry>) -> Vec<Segment> {
+    let mut segments = Vec::new();
     for subtitle in subtitles {
-        if current_text.len() + subtitle.text.len() < 2000 {
-            current_text.push_str(&subtitle.text)
-        } else {
-            chunks.push(current_text.trim().to_string());
-            current_text.clear();
-        }
+        segments.push(Segment {
+            start: subtitle.timestamp as f64,
+            end: (subtitle.timestamp + subtitle.duration as u64) as f64,
+            text: subtitle.text,
+        })
     }
-    Ok(chunks)
+    segments
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -48,8 +47,8 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
             app.emit("stream", "[end]".to_string())
                 .map_err(|e| e.to_string())?;
 
-            let chunks = transform_subtitles_to_chunks(subtitles)?;
-            let transcripts = chunks.join("\n\n");
+            let segments = transform_subtitles_to_segments(subtitles);
+            let transcripts = serde_json::to_string(&segments).unwrap();
             db::update_video(app.state(), _id, "transcripts".to_string(), transcripts)?;
             return Ok(());
         }
@@ -70,7 +69,7 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
         .await
         .map_err(|e| e.to_string())?;
 
-    if audio_filesize > 25 * 1024 * 1024 {
+    if audio_filesize > 38 * 1024 * 1024 {
         let output_dir = cache_dir.join("chunk");
         let bytes_per_second = audio_filesize as f64 / duration as f64;
         let chunk_duration = ((20 * 1024 * 1024) as f64 / bytes_per_second) as i64;
@@ -85,13 +84,24 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
 
     app.emit("stream", "[start]".to_string())
         .map_err(|e| e.to_string())?;
-    let chunks = whisper::trancript(&app, &temp_path).await?;
+    let segments = whisper::trancript(&app, &temp_path).await?;
     app.emit("stream", "[end]".to_string())
         .map_err(|e| e.to_string())?;
-    let transcripts = chunks.join("\n\n");
+    let transcripts = serde_json::to_string(&segments).unwrap();
     db::update_video(app.state(), _id, "transcripts".to_string(), transcripts)?;
 
     Ok(())
+}
+
+#[tauri::command]
+async fn fetch_image(app: tauri::AppHandle, url: String) -> Result<Vec<u8>, String> {
+    let client = whisper::create_client(&app)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let response = client.get(url).send().await.map_err(|e| e.to_string())?;
+    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    Ok(bytes.to_vec())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -107,6 +117,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             run_yt,
+            fetch_image,
             whisper::run_summary,
             db::get_videos,
             db::delete_video,
