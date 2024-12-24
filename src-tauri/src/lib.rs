@@ -20,7 +20,7 @@ fn transform_subtitles_to_chunks(subtitles: Vec<SubtitleEntry>) -> Result<Vec<St
     Ok(chunks)
 }
 
-#[tauri::command(rename_all = "snake_case")]
+#[tauri::command]
 async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), String> {
     let mut _id = input_id;
     let youtube_audio = YoutubeAudio::new(setting::get_proxy(&app).as_deref());
@@ -70,7 +70,7 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
         .await
         .map_err(|e| e.to_string())?;
 
-    if audio_filesize > 25 * 1024 * 1024 {
+    if audio_filesize > 38 * 1024 * 1024 {
         let output_dir = cache_dir.join("chunk");
         let bytes_per_second = audio_filesize as f64 / duration as f64;
         let chunk_duration = ((20 * 1024 * 1024) as f64 / bytes_per_second) as i64;

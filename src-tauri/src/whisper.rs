@@ -106,7 +106,7 @@ fn get_system_prompt(language: &str) -> String {
     prompt.to_string()
 }
 
-#[tauri::command(rename_all = "snake_case")]
+#[tauri::command]
 pub async fn run_summary(
     app: tauri::AppHandle,
     video_id: i64, // id in database
