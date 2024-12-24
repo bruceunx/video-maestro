@@ -101,7 +101,7 @@ pub fn transform_segments_to_chunks(segments: Vec<Segment>) -> Vec<String> {
         };
 
         if current_string.len() + segment.text.len() > 2000 {
-            if segment.start - end_time > 10.0 {
+            if segment.start - end_time > 7.0 {
                 chunks.push(current_string.clone());
                 current_string.clear();
             }
