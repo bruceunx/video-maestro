@@ -107,7 +107,6 @@ function App() {
     try {
       setInProgress(true);
       await invoke("run_summary", {
-        context: currentVideo.transcripts,
         video_id: currentVideo.id,
         language: selectedLanguage,
         auto: auto,

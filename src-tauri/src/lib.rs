@@ -7,20 +7,6 @@ mod whisper;
 use tube_rs::{SubtitleEntry, YoutubeAudio};
 use whisper::Segment;
 
-fn transform_subtitles_to_chunks(subtitles: Vec<SubtitleEntry>) -> Result<Vec<String>, String> {
-    let mut chunks = Vec::new();
-    let mut current_text = String::new();
-    for subtitle in subtitles {
-        if current_text.len() + subtitle.text.len() < 2000 {
-            current_text.push_str(&subtitle.text)
-        } else {
-            chunks.push(current_text.trim().to_string());
-            current_text.clear();
-        }
-    }
-    Ok(chunks)
-}
-
 fn transform_subtitles_to_segments(subtitles: Vec<SubtitleEntry>) -> Vec<Segment> {
     let mut segments = Vec::new();
     for subtitle in subtitles {
@@ -33,7 +19,7 @@ fn transform_subtitles_to_segments(subtitles: Vec<SubtitleEntry>) -> Vec<Segment
     segments
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), String> {
     let mut _id = input_id;
     let youtube_audio = YoutubeAudio::new(setting::get_proxy(&app).as_deref());
