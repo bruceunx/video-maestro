@@ -1,6 +1,6 @@
 pub mod webvtt;
 use dotenv::dotenv;
-use tauri::{utils::mime_type, Emitter, Manager};
+use tauri::{Emitter, Manager};
 mod db;
 mod setting;
 mod whisper;
@@ -94,6 +94,17 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
     Ok(())
 }
 
+#[tauri::command]
+async fn fetch_image(app: tauri::AppHandle, url: String) -> Result<Vec<u8>, String> {
+    let client = whisper::create_client(&app)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let response = client.get(url).send().await.map_err(|e| e.to_string())?;
+    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    Ok(bytes.to_vec())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     dotenv().ok();
@@ -107,6 +118,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             run_yt,
+            fetch_image,
             whisper::run_summary,
             db::get_videos,
             db::delete_video,

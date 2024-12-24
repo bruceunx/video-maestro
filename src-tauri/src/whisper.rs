@@ -70,7 +70,7 @@ pub async fn remove_files_from_directory(dir_path: &Path) -> Result<()> {
     Ok(())
 }
 
-async fn create_client(app: &tauri::AppHandle) -> Result<Client> {
+pub async fn create_client(app: &tauri::AppHandle) -> Result<Client> {
     let client = match setting::get_proxy(app) {
         Some(proxy_url) => Client::builder().proxy(Proxy::https(proxy_url)?).build()?,
         None => Client::builder().build()?,

@@ -32,7 +32,7 @@ pub struct Audio {
     summary: Option<String>,
     keywords: String,
     timestamp: i64,
-    thumbail_url: String,
+    thumbnail_url: String,
 }
 
 pub fn init_db(app_handle: &AppHandle) -> Result<DataBase, DataBaseError> {
@@ -118,7 +118,7 @@ pub fn get_videos(db: State<DataBase>) -> Result<Vec<Audio>, String> {
                 summary: row.get(6).ok(),
                 keywords: row.get(7)?,
                 timestamp: row.get(8)?,
-                thumbail_url: row.get(9)?,
+                thumbnail_url: row.get(9)?,
             })
         })
         .map_err(|e| e.to_string())?;

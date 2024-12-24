@@ -3,41 +3,5 @@
   "identifier": "default",
   "description": "Capability for the main window",
   "windows": ["main"],
-  "permissions": [
-    "core:default",
-    "shell:allow-open",
-    "shell:default",
-    "shell:allow-stdin-write",
-    "shell:allow-spawn",
-    {
-      "identifier": "shell:allow-execute",
-      "allow": [
-        {
-          "name": "binaries/ffmpeg",
-          "sidecar": true,
-          "args": true
-        },
-        {
-          "name": "binaries/ytdown",
-          "sidecar": true,
-          "args": true
-        }
-      ]
-    },
-    {
-      "identifier": "shell:allow-spawn",
-      "allow": [
-        {
-          "name": "binaries/ffmpeg",
-          "sidecar": true,
-          "args": true
-        },
-        {
-          "name": "binaries/ytdown",
-          "sidecar": true,
-          "args": true
-        }
-      ]
-    }
-  ]
+  "permissions": ["core:default", "shell:default"]
 }
