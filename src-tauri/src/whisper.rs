@@ -17,7 +17,7 @@ use super::setting;
 #[derive(Debug, Deserialize)]
 struct TranscriptionResponse {
     text: String,
-    // segments: Vec<Segment>,
+    segments: Vec<Segment>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -81,12 +81,12 @@ pub async fn create_client(app: &tauri::AppHandle) -> Result<Client> {
 // System Prompt: summarize with mindmap?
 //
 //
-// #[derive(Debug, Deserialize)]
-// struct Segment {
-//     text: String,
-//     start: f64,
-//     end: f64,
-// }
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Segment {
+    pub text: String,
+    pub start: f64,
+    pub end: f64,
+}
 //
 //
 //
@@ -246,13 +246,12 @@ async fn transcribe_audio(
         }
         _ => {
             let error_text = response.text().await?;
-            println!("error from whisper {}", error_text);
             anyhow::bail!("API error {} - {}", status, error_text);
         }
     }
 }
 
-pub async fn trancript(app: &tauri::AppHandle, audio_path: &Path) -> Result<Vec<String>, String> {
+pub async fn trancript(app: &tauri::AppHandle, audio_path: &Path) -> Result<Vec<Segment>, String> {
     let settings_value = setting::get_settings(app);
 
     let (api_url, model_name, api_key) = match settings_value {
@@ -272,20 +271,27 @@ pub async fn trancript(app: &tauri::AppHandle, audio_path: &Path) -> Result<Vec<
         match transcribe_audio(app, &api_key, audio_path_str, &model_name, &api_url).await {
             Ok(response) => {
                 app.emit("stream", response.text.clone()).unwrap();
-                chunks.push(response.text);
+                chunks.extend(response.segments);
             }
             Err(e) => return Err(e.to_string()),
         };
     } else {
         let mut dir = fs::read_dir(audio_path).await.map_err(|e| e.to_string())?;
 
+        let mut end_time = 0.0;
         while let Some(entry) = dir.next_entry().await.map_err(|e| e.to_string())? {
             let audio_path = entry.path();
             let audio_path_str = audio_path.to_str().unwrap();
             match transcribe_audio(app, &api_key, audio_path_str, &model_name, &api_url).await {
                 Ok(response) => {
                     app.emit("stream", response.text.clone()).unwrap();
-                    chunks.push(response.text);
+                    let mut current_end = 0.0;
+                    for mut segment in response.segments {
+                        segment.start += end_time;
+                        current_end = segment.end;
+                        chunks.push(segment);
+                    }
+                    end_time = current_end;
                 }
                 Err(_) => continue,
             };

@@ -5,6 +5,7 @@ mod db;
 mod setting;
 mod whisper;
 use tube_rs::{SubtitleEntry, YoutubeAudio};
+use whisper::Segment;
 
 fn transform_subtitles_to_chunks(subtitles: Vec<SubtitleEntry>) -> Result<Vec<String>, String> {
     let mut chunks = Vec::new();
@@ -18,6 +19,18 @@ fn transform_subtitles_to_chunks(subtitles: Vec<SubtitleEntry>) -> Result<Vec<St
         }
     }
     Ok(chunks)
+}
+
+fn transform_subtitles_to_segments(subtitles: Vec<SubtitleEntry>) -> Vec<Segment> {
+    let mut segments = Vec::new();
+    for subtitle in subtitles {
+        segments.push(Segment {
+            start: subtitle.timestamp as f64,
+            end: (subtitle.timestamp + subtitle.duration as u64) as f64,
+            text: subtitle.text,
+        })
+    }
+    segments
 }
 
 #[tauri::command]
@@ -48,8 +61,8 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
             app.emit("stream", "[end]".to_string())
                 .map_err(|e| e.to_string())?;
 
-            let chunks = transform_subtitles_to_chunks(subtitles)?;
-            let transcripts = chunks.join("\n\n");
+            let segments = transform_subtitles_to_segments(subtitles);
+            let transcripts = serde_json::to_string(&segments).unwrap();
             db::update_video(app.state(), _id, "transcripts".to_string(), transcripts)?;
             return Ok(());
         }
@@ -85,10 +98,10 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
 
     app.emit("stream", "[start]".to_string())
         .map_err(|e| e.to_string())?;
-    let chunks = whisper::trancript(&app, &temp_path).await?;
+    let segments = whisper::trancript(&app, &temp_path).await?;
     app.emit("stream", "[end]".to_string())
         .map_err(|e| e.to_string())?;
-    let transcripts = chunks.join("\n\n");
+    let transcripts = serde_json::to_string(&segments).unwrap();
     db::update_video(app.state(), _id, "transcripts".to_string(), transcripts)?;
 
     Ok(())
