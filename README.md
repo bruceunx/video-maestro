@@ -1,6 +1,20 @@
-# 🎥 Video Maestro: Manage, Transcribe, Translate, Summarize! ✨
+# <img src="docs/icon.png" alt="Video Maestro Screenshot" width="30"> Video Maestro: Manage, Transcribe, Translate, Summarize! ✨
+
+<p align="center">
+  <img src="docs/icon.png" alt="Video Maestro Screenshot" width="100">
+</p>
 
 Welcome to Video Maestro! 🚀 (formerly known as Video Manager), your ultimate desktop app for managing and transforming video content from platforms like YouTube. Built with the power of Tauri 🦀 and ReactJS ⚛️, this app is a one-stop solution for creators, researchers, and enthusiasts.
+
+<p align="center">
+
+[![macOS](https://img.shields.io/badge/-macOS-black?style=flat-square&logo=apple&logoColor=white)](https://github.com/bruceunx/video-maestro/tags)
+[![Windows](https://img.shields.io/badge/-Windows-blue?style=flat-square&logo=windows&logoColor=white)](https://github.com/bruceunx/video-maestro/tags)
+[![Ubuntu](https://img.shields.io/badge/-Linux-yellow?style=flat-square&logo=linux&logoColor=whit)](https://github.com/bruceunx/video-maestro/tags)
+[![LICENSE](https://img.shields.io/github/license/bruceunx/video-maestro.svg?style=flat-square)](LICENSE)
+[![CI](https://github.com/bruceunx/video-maestro/actions/workflows/release.yml/badge.svg)](https://github.com/bruceunx/video-maestro/actions/workflows/release.yml)
+
+</p>
 
 > [!IMPORTANT]
 > Video Maestro support youtube with/without subtitles. If the video has subtitles, then use subtitles by default, otherwise transform audio to transcripts first
@@ -72,12 +86,12 @@ pnpm tauri dev
 > If you download the app from github, you should encounter the error message like `The ..App is damaged and can not be opened ...`, try run the following command with admin authority
 
 ```bash
-    sudo xattr -d com.apple.quarantine /Applications/video-maestr.app
+    sudo xattr -d com.apple.quarantine /Applications/video-maestro.app
 ```
 
 ## TODO
 
-- [ ] add workflow to github
+- [x] add workflow to github
 - [x] add Timeline to prompt for better Summarization
 - [x] develop youtube parser to replace yt-dlp
 - [x] use [rust-ffmpeg](https://github.com/CapSoftware/rust-ffmpeg) instead sidercar with ffmpeg
