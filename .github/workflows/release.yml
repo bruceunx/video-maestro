@@ -64,8 +64,8 @@ jobs:
           libavfilter-dev \
           libavformat-dev \
           libavutil-dev \
-          curl -L https://sourceforge.net/projects/avbuild/files/linux/ffmpeg-7.1-linux-clang-default.tar.xz/download -o ffmpeg.tar.xz
-          tar -xf ffmpeg.tar.xz
+          # curl -L https://sourceforge.net/projects/avbuild/files/linux/ffmpeg-7.1-linux-clang-default.tar.xz/download -o ffmpeg.tar.xz
+          # tar -xf ffmpeg.tar.xz
 
       - name: install dependencies (macos only)
         if: matrix.platform == 'macos-latest' || matrix.platform == 'macos-13'
