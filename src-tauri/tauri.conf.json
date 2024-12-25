@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "video-maestr",
+  "productName": "video-maestro",
   "version": "0.1.0",
   "identifier": "pylogic.net",
   "build": {
