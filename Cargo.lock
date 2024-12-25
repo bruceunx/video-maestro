@@ -4478,6 +4478,7 @@ dependencies = [
  "dotenv",
  "ffmpeg-audio",
  "futures-util",
+ "regex",
  "reqwest",
  "rusqlite",
  "serde",

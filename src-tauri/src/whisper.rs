@@ -12,6 +12,7 @@ use tokio::io::AsyncReadExt;
 
 use super::db::{self, DataBase};
 use super::setting;
+use super::utils;
 
 // define the transcription struct with only text in my interest
 #[derive(Debug, Deserialize)]
@@ -88,32 +89,6 @@ pub struct Segment {
     pub end: f64,
 }
 
-pub fn transform_segments_to_chunks(segments: Vec<Segment>) -> Vec<String> {
-    let mut chunks = Vec::new();
-
-    let mut current_string = String::new();
-
-    let mut end_time = 0.0;
-    for segment in segments {
-        if current_string.len() + segment.text.len() > 3000 {
-            chunks.push(current_string.clone());
-            current_string.clear();
-        };
-
-        if current_string.len() + segment.text.len() > 2000 {
-            if segment.start - end_time > 7.0 {
-                chunks.push(current_string.clone());
-                current_string.clear();
-            }
-        }
-
-        current_string.push_str(&segment.text);
-        end_time = segment.end;
-    }
-
-    chunks
-}
-
 //
 //
 //
@@ -156,7 +131,7 @@ pub async fn run_summary(
     let (transcripts, description) = db::get_subtitle_with_id(db, video_id)?;
     let subtitles: Vec<Segment> = serde_json::from_str(&transcripts).map_err(|e| e.to_string())?;
 
-    let chunks = transform_segments_to_chunks(subtitles);
+    let chunks = utils::transform_segments_to_chunks(&description, subtitles);
 
     let mut summary = Vec::new();
 
