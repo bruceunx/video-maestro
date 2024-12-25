@@ -8,9 +8,9 @@ Welcome to Video Maestro! 🚀 (formerly known as Video Manager), your ultimate 
 
 <p align="center">
 
-[![macOS](https://img.shields.io/badge/-macOS-black?style=flat-square&logo=apple&logoColor=white)](https://github.com/bruceunx/video-maestro/releases)
-[![Windows](https://img.shields.io/badge/-Windows-blue?style=flat-square&logo=windows&logoColor=white)](https://github.com/bruceunx/video-maestro/releases)
-[![Ubuntu](https://img.shields.io/badge/-Linux-yellow?style=flat-square&logo=linux&logoColor=whit)](https://github.com/bruceunx/video-maestro/releases)
+[![macOS](https://img.shields.io/badge/-macOS-black?style=flat-square&logo=apple&logoColor=white)](https://github.com/bruceunx/video-maestro/tags)
+[![Windows](https://img.shields.io/badge/-Windows-blue?style=flat-square&logo=windows&logoColor=white)](https://github.com/bruceunx/video-maestro/tags)
+[![Ubuntu](https://img.shields.io/badge/-Linux-yellow?style=flat-square&logo=linux&logoColor=whit)](https://github.com/bruceunx/video-maestro/tags)
 [![LICENSE](https://img.shields.io/github/license/bruceunx/video-maestro.svg?style=flat-square)](LICENSE)
 [![CI](https://github.com/bruceunx/video-maestro/actions/workflows/release.yml/badge.svg)](https://github.com/bruceunx/video-maestro/actions/workflows/release.yml)
 
