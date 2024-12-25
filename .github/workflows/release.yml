@@ -1,9 +1,9 @@
-name: Build and Release Tauri App
+name: Build and Release
 
 on:
   push:
     tags:
-      - "v*.*.*" # Trigger workflow on version tags like v1.0.0
+      - "v*.*.*"
 
 jobs:
   build:
@@ -13,28 +13,23 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-      # Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Install Rust
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: ${{ matrix.os == 'windows-latest' && 'x86_64-pc-windows-msvc' || 'x86_64-unknown-linux-gnu' }}
 
-      # Install Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      # Install dependencies
       - name: Install dependencies
         run: npm install
 
-      # Build the Tauri app
       - name: Build Tauri App
         run: npm run tauri build
 
@@ -48,35 +43,57 @@ jobs:
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/appimage/*.AppImage
 
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
 
-    # Create GitHub Release
-    - name: Create Release
-      uses: actions/create-release@v1
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
-        body: |
-          This release contains the following builds:
-          - macOS: dmg
-          - Windows: exe/msi
-          - Linux: AppImage
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            This release contains the following builds:
+            - macOS: dmg
+            - Windows: exe/msi
+            - Linux: AppImage
+          draft: false
+          prerelease: false
 
-    # Upload Release Assets
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: src-tauri/target/release/bundle/dmg/*.dmg
-        asset_name: videomaestro-macos.dmg
-        asset_content_type: application/x-diskimage
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: src-tauri/target/release/bundle/msi/*.msi
-        asset_name: videomaestro-windows.msi
-        asset_content_type: application/x-msi
+      - name: Upload macOS Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./*-artifacts/*.dmg
+          asset_name: videomaestro-macos.dmg
+          asset_content_type: application/x-diskimage
+
+      - name: Upload Windows Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./*-artifacts/*.msi
+          asset_name: videomaestro-windows.msi
+          asset_content_type: application/x-msi
+
+      - name: Upload Linux Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./*-artifacts/*.AppImage
+          asset_name: videomaestro-linux.AppImage
+          asset_content_type: application/x-appimage

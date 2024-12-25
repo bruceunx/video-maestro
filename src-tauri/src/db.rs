@@ -108,7 +108,6 @@ fn transform_transripts_str(
         Some(data) => {
             let segments: Vec<Segment> = serde_json::from_str(&data).unwrap();
             let chunks = utils::transform_segments_to_chunks(&description, segments);
-            println!("{:?}", chunks);
             Some(chunks.join("\n\n"))
         }
         None => None,
