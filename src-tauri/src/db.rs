@@ -1,4 +1,4 @@
-use crate::whisper::{self, Segment};
+use crate::{utils, whisper::Segment};
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
@@ -99,11 +99,15 @@ pub fn create_video(db: State<DataBase>, audio_data: AudioData) -> Result<i64, S
     Ok(db_id)
 }
 
-fn transform_transripts_str(transcripts: Option<String>) -> Option<String> {
+fn transform_transripts_str(
+    description: Option<String>,
+    transcripts: Option<String>,
+) -> Option<String> {
+    let description = description.unwrap_or("".to_string());
     match transcripts {
         Some(data) => {
             let segments: Vec<Segment> = serde_json::from_str(&data).unwrap();
-            let chunks = whisper::transform_segments_to_chunks(segments);
+            let chunks = utils::transform_segments_to_chunks(&description, segments);
             Some(chunks.join("\n\n"))
         }
         None => None,
@@ -115,7 +119,7 @@ pub fn get_videos(db: State<DataBase>) -> Result<Vec<Audio>, String> {
     let db = db.0.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = db
-        .prepare("SELECT id, video_id, title, duration, upload_date, transcripts, summary, keywords, timestamp, thumbnail_url from audio ORDER BY id DESC")
+        .prepare("SELECT id, video_id, title, duration, upload_date, transcripts, summary, keywords, timestamp, thumbnail_url, description from audio ORDER BY id DESC")
         .map_err(|e| e.to_string())?;
 
     let video_iter = stmt
@@ -126,7 +130,7 @@ pub fn get_videos(db: State<DataBase>) -> Result<Vec<Audio>, String> {
                 title: row.get(2)?,
                 duration: row.get(3)?,
                 upload_date: row.get(4)?,
-                transcripts: transform_transripts_str(row.get(5).ok()),
+                transcripts: transform_transripts_str(row.get(10).ok(), row.get(5).ok()),
                 summary: row.get(6).ok(),
                 keywords: row.get(7)?,
                 timestamp: row.get(8)?,

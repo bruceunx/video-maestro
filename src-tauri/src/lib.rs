@@ -3,21 +3,9 @@ use dotenv::dotenv;
 use tauri::{Emitter, Manager};
 mod db;
 mod setting;
+mod utils;
 mod whisper;
-use tube_rs::{SubtitleEntry, YoutubeAudio};
-use whisper::Segment;
-
-fn transform_subtitles_to_segments(subtitles: Vec<SubtitleEntry>) -> Vec<Segment> {
-    let mut segments = Vec::new();
-    for subtitle in subtitles {
-        segments.push(Segment {
-            start: subtitle.timestamp as f64,
-            end: (subtitle.timestamp + subtitle.duration as u64) as f64,
-            text: subtitle.text,
-        })
-    }
-    segments
-}
+use tube_rs::YoutubeAudio;
 
 #[tauri::command(rename_all = "snake_case")]
 async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), String> {
@@ -47,7 +35,7 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
             app.emit("stream", "[end]".to_string())
                 .map_err(|e| e.to_string())?;
 
-            let segments = transform_subtitles_to_segments(subtitles);
+            let segments = utils::transform_subtitles_to_segments(subtitles);
             let transcripts = serde_json::to_string(&segments).unwrap();
             db::update_video(app.state(), _id, "transcripts".to_string(), transcripts)?;
             return Ok(());

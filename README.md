@@ -67,8 +67,17 @@ pnpm install
 pnpm tauri dev
 ```
 
+> [!NOTE]
+> If you compile the app in local machine, it is fine!!!.
+> If you download the app from github, you should encounter the error message like `The ..App is damaged and can not be opened ...`, try run the following command with admin authority
+
+```bash
+    sudo xattr -d com.apple.quarantine /Applications/video-maestr.app
+```
+
 ## TODO
 
 - [ ] add workflow to github
+- [x] add Timeline to prompt for better Summarization
 - [x] develop youtube parser to replace yt-dlp
 - [x] use [rust-ffmpeg](https://github.com/CapSoftware/rust-ffmpeg) instead sidercar with ffmpeg
