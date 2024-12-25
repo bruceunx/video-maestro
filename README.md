@@ -77,7 +77,7 @@ pnpm tauri dev
 
 ## TODO
 
-- [ ] add workflow to github
+- [x] add workflow to github
 - [x] add Timeline to prompt for better Summarization
 - [x] develop youtube parser to replace yt-dlp
 - [x] use [rust-ffmpeg](https://github.com/CapSoftware/rust-ffmpeg) instead sidercar with ffmpeg
