@@ -84,6 +84,9 @@ pub fn transform_segments_to_chunks(description: &str, segments: Vec<Segment>) -
 
             current_string.push_str(&timeline.content);
         }
+        if current_string.len() > 0 {
+            chunks.push(current_string);
+        }
 
         return chunks;
     }
@@ -104,6 +107,10 @@ pub fn transform_segments_to_chunks(description: &str, segments: Vec<Segment>) -
 
         current_string.push_str(&segment.text);
         end_time = segment.end;
+    }
+
+    if current_string.len() > 0 {
+        chunks.push(current_string);
     }
 
     chunks
