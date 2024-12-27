@@ -57,7 +57,7 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
         .await
         .map_err(|e| e.to_string())?;
 
-    if audio_filesize > 38 * 1024 * 1024 {
+    if audio_filesize > 22 * 1024 * 1024 {
         let output_dir = cache_dir.join("chunk");
         let bytes_per_second = audio_filesize as f64 / duration as f64;
         let chunk_duration = ((20 * 1024 * 1024) as f64 / bytes_per_second) as i64;
