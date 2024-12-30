@@ -10,6 +10,8 @@ use tauri::{Emitter, State};
 use tokio::fs::{self, File};
 use tokio::io::AsyncReadExt;
 
+use crate::gemini::parse_gemini;
+
 use super::db::{self, DataBase};
 use super::setting;
 use super::utils;
@@ -19,6 +21,23 @@ use super::utils;
 struct TranscriptionResponse {
     text: String,
     segments: Vec<Segment>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct GeminiRequest {
+    model: String,
+    contents: Vec<GeminiMessage>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct GeminiMessage {
+    role: String,
+    parts: Vec<GeminiPart>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct GeminiPart {
+    text: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -338,13 +357,86 @@ pub async fn chat_stream(
         }) => (ai_url, ai_model_name, api_key),
         _ => return Err("no api settings found".to_string()),
     };
-
     let client = create_client(app).await.map_err(|e| e.to_string())?;
 
     let message = format!(
         "short description for the whole content: {description}. full subtitles: {user_message}"
     );
 
+    if api_url.contains("googleapis") {
+        handle_gemini_api(app, lang, message, llm_model, client, &api_url, &api_key).await
+    } else {
+        handle_open_api(app, lang, message, llm_model, client, &api_url, &api_key).await
+    }
+}
+
+async fn handle_gemini_api(
+    app: &tauri::AppHandle,
+    lang: &str,
+    message: String,
+    llm_model: String,
+    client: Client,
+    api_url: &str,
+    _api_key: &str,
+) -> Result<String, String> {
+    let contents: Vec<GeminiMessage> = vec![
+        GeminiMessage {
+            role: "model".to_string(),
+            parts: vec![GeminiPart {
+                text: get_system_prompt(lang),
+            }],
+        },
+        GeminiMessage {
+            role: "user".to_string(),
+            parts: vec![GeminiPart { text: message }],
+        },
+    ];
+
+    let request = GeminiRequest {
+        model: llm_model,
+        contents,
+    };
+
+    let response = client
+        .post(api_url)
+        .header("Content-Type", "application/json")
+        .json(&request)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut summary = Vec::new();
+
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| e.to_string())?;
+        let chunk_str = String::from_utf8_lossy(&chunk);
+
+        for line in chunk_str.split("data: ") {
+            let line = line.trim();
+            if line.is_empty() || line == "[DONE]" {
+                continue;
+            }
+            if let Ok(content) = parse_gemini(line) {
+                summary.push(content.clone());
+                app.emit("summary", content).map_err(|e| e.to_string())?;
+                std::io::stdout().flush().unwrap();
+            }
+        }
+    }
+
+    Ok(summary.join(""))
+}
+
+async fn handle_open_api(
+    app: &tauri::AppHandle,
+    lang: &str,
+    message: String,
+    llm_model: String,
+    client: Client,
+    api_url: &str,
+    api_key: &str,
+) -> Result<String, String> {
     let request = ChatRequest {
         messages: vec![
             Message {
@@ -356,9 +448,10 @@ pub async fn chat_stream(
                 content: message,
             },
         ],
-        model: llm_model.to_string(),
+        model: llm_model,
         stream: true,
     };
+
     let response = client
         .post(api_url)
         .header("Content-Type", "application/json")

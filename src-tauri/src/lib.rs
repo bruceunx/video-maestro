@@ -2,6 +2,7 @@ pub mod webvtt;
 use dotenv::dotenv;
 use tauri::{Emitter, Manager};
 mod db;
+mod gemini;
 mod setting;
 mod utils;
 mod whisper;
