@@ -48,7 +48,7 @@ pub async fn extract_vtt_chunks(vtt_file: &Path) -> Result<Vec<String>, String> 
             is_inblock = false;
         }
     }
-    if text_parse.len() > 0 {
+    if !text_parse.is_empty() {
         chunks.push(text_parse.join(" "))
     }
 
@@ -131,10 +131,8 @@ pub async fn get_sub_lang(app: &tauri::AppHandle, url: &str) -> Option<String> {
                     if line.is_empty() {
                         continue;
                     }
-                    if line.contains("Available automatic captions") {
-                        if !lang_attention {
-                            return None;
-                        }
+                    if line.contains("Available automatic captions") && !lang_attention {
+                        return None;
                     }
                     if line.starts_with("Language") {
                         lang_attention = true;
@@ -147,11 +145,11 @@ pub async fn get_sub_lang(app: &tauri::AppHandle, url: &str) -> Option<String> {
                         break;
                     }
                 }
-                return None;
+                None
             } else {
-                return None;
+                None
             }
         }
-        Err(_) => return None,
+        Err(_) => None,
     }
 }

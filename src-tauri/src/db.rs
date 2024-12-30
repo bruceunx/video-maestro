@@ -11,13 +11,13 @@ pub struct DataBase(Mutex<Connection>);
 #[derive(Error, Debug)]
 pub enum DataBaseError {
     #[error("Faile to get app dir: {0}")]
-    AppDirError(#[from] tauri::Error),
+    AppDir(#[from] tauri::Error),
 
     #[error("Database connection error: {0}")]
-    ConnectionError(#[from] rusqlite::Error),
+    Connection(#[from] rusqlite::Error),
 
     #[error("Create file error: {0}")]
-    CreateFileError(#[from] std::io::Error),
+    CreateFile(#[from] std::io::Error),
 }
 
 //id, video_id, title, duration, upload_date, transcripts, summary, keywords, timestamp, thumbnail_url

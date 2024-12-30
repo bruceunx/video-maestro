@@ -48,7 +48,7 @@ pub fn transform_segments_to_chunks(description: &str, segments: Vec<Segment>) -
     let mut timelines = parse_timeline(description);
     timelines.sort_by_key(|e| e.timestamp);
 
-    if timelines.len() > 0 {
+    if !timelines.is_empty() {
         for i in 0..timelines.len() {
             let current_start = timelines[i].timestamp.as_secs_f64() * 1000.0;
             let current_end = if i < timelines.len() - 1 {
@@ -84,7 +84,7 @@ pub fn transform_segments_to_chunks(description: &str, segments: Vec<Segment>) -
 
             current_string.push_str(&timeline.content);
         }
-        if current_string.len() > 0 {
+        if !current_string.is_empty() {
             chunks.push(current_string);
         }
 
@@ -98,18 +98,16 @@ pub fn transform_segments_to_chunks(description: &str, segments: Vec<Segment>) -
             current_string.clear();
         };
 
-        if current_string.len() + segment.text.len() > 2000 {
-            if segment.start - end_time > 7.0 {
-                chunks.push(current_string.clone());
-                current_string.clear();
-            }
+        if current_string.len() + segment.text.len() > 2000 && segment.start - end_time > 7.0 {
+            chunks.push(current_string.clone());
+            current_string.clear();
         }
 
         current_string.push_str(&segment.text);
         end_time = segment.end;
     }
 
-    if current_string.len() > 0 {
+    if !current_string.is_empty() {
         chunks.push(current_string);
     }
 

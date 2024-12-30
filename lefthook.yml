@@ -1,0 +1,21 @@
+pre-commit:
+  parallel: true
+  commands:
+    cargo-fmt:
+      glob: "*.rs"
+      run: cargo fmt --all -- --check
+    cargo-clippy:
+      glob: "*.rs"
+      run: cargo clippy --all-targets --all-features -- -D warnings
+    cargo-check:
+      glob: "*.rs"
+      run: cargo check --all-targets --all-features
+    # cargo-test:
+    #   glob: "*.rs"
+    #   run: cargo test --all-features
+    # cargo-deny:
+    #   glob: "*.{rs,toml}"
+    #   run: cargo deny check licenses sources advisories bans
+    # rustfmt-check:
+    #   glob: "*.rs"
+    #   run: rustfmt --check {staged_files}
