@@ -9,6 +9,7 @@ pub struct AppSettings {
     pub api_key: Option<String>,
     pub ai_url: Option<String>,
     pub ai_model_name: Option<String>,
+    pub whisper_api_key: Option<String>,
     pub whisper_url: Option<String>,
     pub whisper_model_name: Option<String>,
     pub proxy: Option<String>,

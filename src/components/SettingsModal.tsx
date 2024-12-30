@@ -1,12 +1,13 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Settings, X, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Settings, X } from "lucide-react";
 import { useSettings } from "store/SettingsProvider";
-import { SettingsType } from "types/settings";
+import type { SettingsType } from "types/settings";
 
 const SettingsModal: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [showApiKey, setShowApiKey] = React.useState(false);
+  const [showWhsperApiKey, setWhisperShowApiKey] = React.useState(false);
 
   const { settings: saveSettings, updateSettings } = useSettings();
   const [settings, setSettings] = React.useState<SettingsType>(saveSettings);
@@ -133,6 +134,38 @@ const SettingsModal: React.FC = () => {
                              focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter model name like gpt-4o"
                 />
+              </div>
+
+              <div className="relative">
+                <label
+                  htmlFor="whisperApiKey"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Whisper API Key
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type={showWhsperApiKey ? "text" : "password"}
+                    id="whisperApiKey"
+                    name="whisperApiKey"
+                    value={settings.whisperApiKey || ""}
+                    onChange={handleInputChange}
+                    className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+                               focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter your Whisper API key"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setWhisperShowApiKey(!showWhsperApiKey)}
+                    className="ml-2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showWhsperApiKey ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
