@@ -145,8 +145,8 @@ fn parse_xml_with_auto(xml_string: &str) -> Result<Vec<SubtitleEntry>, Box<dyn E
 
     loop {
         match reader.read_event() {
-            Ok(Event::Start(ref e)) => match e.name().as_ref() {
-                b"p" => {
+            Ok(Event::Start(ref e)) => {
+                if e.name().as_ref() == b"p" {
                     let mut timestamp = 0;
                     let mut duration = 0;
                     for attr in e.attributes() {
@@ -163,8 +163,7 @@ fn parse_xml_with_auto(xml_string: &str) -> Result<Vec<SubtitleEntry>, Box<dyn E
                         text: String::new(),
                     });
                 }
-                _ => {}
-            },
+            }
             Ok(Event::Text(e)) => {
                 if let Some(ref mut subtitle) = current_subtitle {
                     subtitle.text.push_str(&e.unescape()?);
@@ -238,7 +237,7 @@ impl YoutubeAudio {
                 Ok(ok_proxy) => client_builder.proxy(ok_proxy).build().unwrap(),
                 Err(_) => client_builder.build().unwrap(),
             },
-            None => client_builder.build().unwrap(),
+            _ => client_builder.build().unwrap(),
         };
         Self { client }
     }
@@ -293,15 +292,10 @@ impl YoutubeAudio {
                 format.mime_type,
                 format.last_modified.parse::<u64>().unwrap(),
                 format.url,
-                format
-                    .content_length
-                    .parse::<u64>()
-                    .ok()
-                    .or(Some(0))
-                    .unwrap(),
+                format.content_length.parse::<u64>().ok().unwrap_or(0),
             ),
 
-            None => return None,
+            _ => return None,
         };
 
         let (caption_url, caption_lang) = match response_data.captions {
@@ -309,17 +303,18 @@ impl YoutubeAudio {
                 let caption_array = captions.player_captions_tracklist_renderer.caption_tracks;
 
                 let caption = if caption_array.len() > 1 {
-                    caption_array
-                        .iter()
-                        .find(|item| item.vss_id.contains("en"))
-                        .unwrap()
+                    let caption_en = caption_array.iter().find(|item| item.vss_id.contains("en"));
+                    match caption_en {
+                        Some(caption) => caption,
+                        None => &caption_array[0],
+                    }
                 } else {
                     &caption_array[0]
                 };
 
                 (Some(caption.base_url.clone()), Some(caption.vss_id.clone()))
             }
-            None => (None, None),
+            _ => (None, None),
         };
 
         let thumbnail_url = format!("https://i.ytimg.com/vi/{}/sddefault.jpg", video_id);
