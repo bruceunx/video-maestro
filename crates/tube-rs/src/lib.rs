@@ -516,7 +516,7 @@ mod tests {
             </body>
             </timedtext>
         "#;
-        let result = parse_xml(&xml);
+        let result = parse_xml(xml);
         assert!(result.is_ok());
         let subtitles = result.unwrap();
         assert_eq!(subtitles.len(), 8);
@@ -545,7 +545,7 @@ mod tests {
             </body>
             </timedtext>
         "#;
-        let result = parse_xml(&xml);
+        let result = parse_xml(xml);
         assert!(result.is_ok());
         let subtitles = result.unwrap();
         assert_eq!(subtitles.len(), 2);

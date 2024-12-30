@@ -20,27 +20,24 @@ async fn run_yt(app: tauri::AppHandle, url: &str, input_id: i64) -> Result<(), S
         app.emit("state", "update video")
             .map_err(|e| e.to_string())?;
     };
-    match db::get_caption_with_id(app.state(), _id) {
-        Ok((Some(lang), Some(url))) => {
-            let subtitles = youtube_audio
-                .download_caption(&url, &lang)
-                .await
-                .map_err(|e| e.to_string())?;
-            app.emit("stream", "[start]".to_string())
-                .map_err(|e| e.to_string())?;
-            for subtitle in &subtitles {
-                app.emit("stream", subtitle.text.clone())
-                    .map_err(|e| e.to_string())?
-            }
-            app.emit("stream", "[end]".to_string())
-                .map_err(|e| e.to_string())?;
-
-            let segments = utils::transform_subtitles_to_segments(subtitles);
-            let transcripts = serde_json::to_string(&segments).unwrap();
-            db::update_video(app.state(), _id, "transcripts".to_string(), transcripts)?;
-            return Ok(());
+    if let Ok((Some(lang), Some(url))) = db::get_caption_with_id(app.state(), _id) {
+        let subtitles = youtube_audio
+            .download_caption(&url, &lang)
+            .await
+            .map_err(|e| e.to_string())?;
+        app.emit("stream", "[start]".to_string())
+            .map_err(|e| e.to_string())?;
+        for subtitle in &subtitles {
+            app.emit("stream", subtitle.text.clone())
+                .map_err(|e| e.to_string())?
         }
-        _ => {}
+        app.emit("stream", "[end]".to_string())
+            .map_err(|e| e.to_string())?;
+
+        let segments = utils::transform_subtitles_to_segments(subtitles);
+        let transcripts = serde_json::to_string(&segments).unwrap();
+        db::update_video(app.state(), _id, "transcripts".to_string(), transcripts)?;
+        return Ok(());
     };
 
     let (audio_url, audio_filesize, mime_type, duration) =
@@ -97,7 +94,7 @@ pub fn run() {
     dotenv().ok();
     tauri::Builder::default()
         .setup(|app| {
-            setting::get_config_path(&app.handle());
+            setting::get_config_path(app.handle());
             let database = db::init_db(app.handle())?;
             app.manage(database);
             Ok(())

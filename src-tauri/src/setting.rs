@@ -26,9 +26,9 @@ pub fn get_config_path(app: &tauri::AppHandle) -> PathBuf {
 }
 
 pub fn get_proxy(app: &tauri::AppHandle) -> Option<String> {
-    let path = get_config_path(&app);
+    let path = get_config_path(app);
     if !path.exists() {
-        return None;
+        None
     } else {
         let contents = fs::read_to_string(path).ok()?;
         let setting: AppSettings = serde_json::from_str(&contents).ok()?;
@@ -37,9 +37,9 @@ pub fn get_proxy(app: &tauri::AppHandle) -> Option<String> {
 }
 
 pub fn get_settings(app: &tauri::AppHandle) -> Option<AppSettings> {
-    let path = get_config_path(&app);
+    let path = get_config_path(app);
     if !path.exists() {
-        return None;
+        None
     } else {
         let contents = fs::read_to_string(path).ok()?;
         let setting: AppSettings = serde_json::from_str(&contents).ok()?;
