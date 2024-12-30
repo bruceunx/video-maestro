@@ -1,8 +1,10 @@
 import * as React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Eye, EyeOff, Settings, X } from "lucide-react";
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
+import { Eye, EyeOff, Settings, Trash2, X } from "lucide-react";
 import { useSettings } from "store/SettingsProvider";
 import type { SettingsType } from "types/settings";
+import { useVideoData } from "store/DataContext";
 
 const SettingsModal: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -11,6 +13,8 @@ const SettingsModal: React.FC = () => {
 
   const { settings: saveSettings, updateSettings } = useSettings();
   const [settings, setSettings] = React.useState<SettingsType>(saveSettings);
+
+  const { deleteAll } = useVideoData();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -28,6 +32,15 @@ const SettingsModal: React.FC = () => {
   //     [key]: !prev[key],
   //   }));
   // };
+  //
+  //
+  const handleDeleteAll = async () => {
+    try {
+      await deleteAll();
+    } catch (error) {
+      console.error("Error deleting data:", error);
+    }
+  };
   //
   React.useEffect(() => {
     setSettings({ ...settings, ...saveSettings });
@@ -224,6 +237,66 @@ const SettingsModal: React.FC = () => {
                   placeholder="Enter AI supplier URL"
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center mt-6">
+            <AlertDialog.Root>
+              <AlertDialog.Trigger asChild>
+                <button
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 
+                           transition-colors flex items-center space-x-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete All Data</span>
+                </button>
+              </AlertDialog.Trigger>
+              <AlertDialog.Portal>
+                <AlertDialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
+                <AlertDialog.Content
+                  className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
+                                              w-full max-w-md bg-white rounded-lg shadow-xl p-6 z-50"
+                >
+                  <AlertDialog.Title className="text-xl font-semibold mb-4">
+                    Delete All Data
+                  </AlertDialog.Title>
+                  <AlertDialog.Description className="text-gray-600 mb-6">
+                    Are you sure you want to delete all data? This action cannot
+                    be undone.
+                  </AlertDialog.Description>
+                  <div className="flex justify-end space-x-2">
+                    <AlertDialog.Cancel
+                      className="px-4 py-2 bg-gray-200 text-gray-700 
+                                                 rounded hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </AlertDialog.Cancel>
+                    <AlertDialog.Action
+                      onClick={handleDeleteAll}
+                      className="px-4 py-2 bg-red-500 text-white 
+                               rounded hover:bg-red-600 transition-colors"
+                    >
+                      Delete
+                    </AlertDialog.Action>
+                  </div>
+                </AlertDialog.Content>
+              </AlertDialog.Portal>
+            </AlertDialog.Root>
+
+            <div className="flex space-x-2">
+              <Dialog.Close
+                className="px-4 py-2 bg-gray-200 text-gray-700 
+                           rounded hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </Dialog.Close>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-blue-500 text-white 
+                           rounded hover:bg-blue-600 transition-colors"
+              >
+                Save Settings
+              </button>
             </div>
           </div>
 

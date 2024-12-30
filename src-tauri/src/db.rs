@@ -205,3 +205,19 @@ pub fn delete_video(db: State<DataBase>, id: i64) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+#[tauri::command]
+pub fn clear_all(db: State<DataBase>) -> Result<(), String> {
+    let db = db.0.lock().map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM audio", [])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+    // let mut db = db.0.lock().map_err(|e| e.to_string())?;
+    // let tx = db.transaction().map_err(|e| e.to_string())?;
+    // tx.execute("DELETE FROM audio", [])
+    //     .map_err(|e| e.to_string())?;
+    // tx.execute("DELETE FROM sqlite_sequence WHERE name='audio'", [])
+    //     .map_err(|e| e.to_string())?;
+    //
+    // tx.commit().map_err(|e| e.to_string())?;
+}

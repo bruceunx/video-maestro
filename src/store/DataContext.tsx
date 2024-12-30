@@ -1,6 +1,6 @@
 import * as React from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { VideoData } from "../types/db";
+import type { VideoData } from "../types/db";
 
 interface VideoDataContextType {
   videos: VideoData[];
@@ -13,6 +13,7 @@ interface VideoDataContextType {
   //   videoData: Partial<VideoData>,
   // ) => Promise<VideoData>;
   deleteVideo: (id: number) => Promise<void>;
+  deleteAll: () => Promise<void>;
   getVideoById: (id: number) => VideoData | undefined;
 
   inProgress: boolean;
@@ -41,13 +42,14 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const fetchVideos = React.useCallback(async (updateFirst: boolean = true) => {
+  const fetchVideos = React.useCallback(async (updateFirst = true) => {
     try {
       const fetchedVideos = await invoke<VideoData[]>("get_videos");
       setVideos(fetchedVideos);
 
-      if (updateFirst && fetchedVideos.length > 0)
+      if (updateFirst && fetchedVideos.length > 0) {
         setCurrentVideo(fetchedVideos[0]);
+      }
     } catch (error) {
       console.error("Failed to fetch videos:", error);
       throw error;
@@ -104,6 +106,17 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
     [videos],
   );
 
+  const deleteAll = React.useCallback(async () => {
+    try {
+      await invoke("clear_all");
+      setCurrentVideo(null);
+      setVideos([]);
+    } catch (error) {
+      console.error("Failed to delete videos:", error);
+      throw error;
+    }
+  }, []);
+
   React.useEffect(() => {
     fetchVideos();
   }, []);
@@ -117,6 +130,7 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
     deleteVideo,
     getVideoById,
     inProgress,
+    deleteAll,
     setInProgress,
   };
 

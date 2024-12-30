@@ -107,6 +107,7 @@ pub fn run() {
             whisper::run_summary,
             db::get_videos,
             db::delete_video,
+            db::clear_all,
             setting::load_settings,
             setting::save_settings,
         ])
