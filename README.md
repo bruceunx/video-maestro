@@ -24,11 +24,11 @@ Welcome to Video Maestro! 🚀 (formerly known as Video Manager), your ultimate 
 ## 📸 Screen Shot
 
 <p align="center">
-  <img src="docs/screenshot3.png" alt="Video Maestro Screenshot" width="600">
+  <img src="docs/shot2.png" alt="Video Maestro Screenshot" width="600">
 </p>
 
 <p align="center">
-  <img src="docs/screenshot2.png" alt="Video Maestro Screenshot" width="600">
+  <img src="docs/shot1.png" alt="Video Maestro Screenshot" width="600">
 </p>
 
 ## ✨ Features
