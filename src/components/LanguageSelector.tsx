@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as Select from "@radix-ui/react-select";
-import { ChevronDownIcon, CheckIcon, Languages } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, Languages } from "lucide-react";
 
 interface Language {
   code: string;
@@ -15,8 +15,6 @@ const LANGUAGES: Language[] = [
   { code: "es", name: "Español" },
   { code: "fr", name: "Français" },
   { code: "de", name: "Deutsch" },
-  { code: "ar", name: "العربية" },
-  { code: "ru", name: "Русский" },
 ];
 
 interface LanguageSelectorProps {

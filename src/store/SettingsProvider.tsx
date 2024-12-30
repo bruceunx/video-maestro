@@ -1,5 +1,5 @@
 import * as React from "react";
-import { SettingsType } from "types/settings";
+import type { SettingsType } from "types/settings";
 
 import { invoke } from "@tauri-apps/api/core";
 
@@ -7,6 +7,7 @@ const defaultSettings: SettingsType = {
   apiKey: null,
   aiUrl: null,
   aiModelName: null,
+  whisperApiKey: null,
   whisperUrl: null,
   whisperModelName: null,
   proxy: null,
