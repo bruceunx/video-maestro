@@ -1,11 +1,12 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import type React from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 import * as RadixToast from "@radix-ui/react-toast";
 import {
-  X as CloseIcon,
-  CheckCircle as SuccessIcon,
-  Info as InfoIcon,
   AlertCircle as ErrorIcon,
   AlertTriangle as WarningIcon,
+  CheckCircle as SuccessIcon,
+  Info as InfoIcon,
+  X as CloseIcon,
 } from "lucide-react";
 
 export type ToastVariant = "success" | "error" | "warning" | "info";
@@ -33,8 +34,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
     setToasts((current) => [...current, { ...message, id }]);
   }, []);
 
-  const removeToast = useCallback((id: string) => {
-    setToasts((current) => current.filter((toast) => toast.id !== id));
+  const removeToast = useCallback((id: string | undefined) => {
+    if (id !== undefined) {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }
   }, []);
 
   const variantConfig = {
@@ -73,7 +76,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
           <RadixToast.Root
             key={toast.id}
             open={true}
-            onOpenChange={() => removeToast(toast.id!)}
+            onOpenChange={() => removeToast(toast.id)}
             duration={toast.duration || 3000}
             className={`
               fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg 
@@ -86,7 +89,9 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
             <div className="flex items-center space-x-3">
               {variantConfig[toast.variant || "info"].icon}
               <RadixToast.Description
-                className={`text-sm ${variantConfig[toast.variant || "info"].text}`}
+                className={`text-sm ${
+                  variantConfig[toast.variant || "info"].text
+                }`}
               >
                 {toast.message}
               </RadixToast.Description>
@@ -94,7 +99,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
             <RadixToast.Close
               className="ml-4 hover:bg-gray-100 rounded-full p-1"
               aria-label="Close"
-              onClick={() => removeToast(toast.id!)}
+              onClick={() => removeToast(toast.id)}
             >
               <CloseIcon size={16} />
             </RadixToast.Close>
