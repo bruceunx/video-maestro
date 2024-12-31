@@ -32,8 +32,8 @@ pub fn transform_subtitles_to_segments(subtitles: Vec<SubtitleEntry>) -> Vec<Seg
     let mut segments = Vec::new();
     for subtitle in subtitles {
         segments.push(Segment {
-            start: subtitle.timestamp as f64,
-            end: (subtitle.timestamp + subtitle.duration as u64) as f64,
+            start: subtitle.timestamp as f64 / 1000.0,
+            end: (subtitle.timestamp + subtitle.duration as u64) as f64 / 1000.0,
             text: subtitle.text,
         })
     }
@@ -53,11 +53,11 @@ pub fn transform_segments_to_chunks(description: &str, segments: Vec<Segment>) -
 
     if !timelines.is_empty() {
         for i in 0..timelines.len() {
-            let current_start = timelines[i].timestamp.as_secs_f64() * 1000.0;
+            let current_start = timelines[i].timestamp.as_secs_f64();
             let current_end = if i < timelines.len() - 1 {
-                timelines[i + 1].timestamp.as_secs_f64() * 1000.0
+                timelines[i + 1].timestamp.as_secs_f64()
             } else {
-                segments.last().map_or(current_start + 60.0, |s| s.end) * 1000.0
+                segments.last().map_or(current_start + 60.0, |s| s.end)
             };
 
             let relevant_segments: Vec<&Segment> = segments
@@ -88,17 +88,16 @@ pub fn transform_segments_to_chunks(description: &str, segments: Vec<Segment>) -
     for segment in segments {
         chunks.push(format!(
             "{} - {}",
-            convert_microseconds_to_time(segment.start as u64),
+            convert_seconds_to_time(segment.start as u64),
             segment.text
         ));
     }
     chunks
 }
 
-fn convert_microseconds_to_time(microseconds: u64) -> String {
-    let total_seconds = microseconds / 1_000;
-    let minutes = total_seconds / 60;
-    let seconds = total_seconds % 60;
+fn convert_seconds_to_time(seconds: u64) -> String {
+    let minutes = seconds / 60;
+    let seconds = seconds % 60;
     format!("{:02}:{:02}", minutes, seconds)
 }
 
@@ -108,7 +107,7 @@ pub fn transform_segment_to_string(segments: Vec<Segment>) -> String {
         content.push_str(
             format!(
                 "{} - {}\n",
-                convert_microseconds_to_time(segment.start as u64),
+                convert_seconds_to_time(segment.start as u64),
                 segment.text
             )
             .as_ref(),
