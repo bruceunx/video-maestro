@@ -119,7 +119,7 @@ export const VideoDataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   React.useEffect(() => {
     fetchVideos();
-  }, []);
+  }, [fetchVideos]);
 
   const contextValue = {
     videos,
