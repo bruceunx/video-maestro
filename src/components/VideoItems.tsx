@@ -20,7 +20,8 @@ const VideoItem = ({ item }: VideoItemProps) => {
           ? "bg-zinc-500"
           : ""
       } p-1 ${!inProgress && "hover:cursor-pointer"} `}
-      onKeyUp={onClick}
+      onClick={onClick}
+      onKeyDown={onClick}
     >
       <div className="flex flex-row items-center space-x-3">
         {item.transcripts === null || item.transcripts.length === 0 ? (
