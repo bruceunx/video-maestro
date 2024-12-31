@@ -69,7 +69,7 @@ function App() {
 
   async function handle_transcript() {
     try {
-      let parse_url;
+      let parse_url: string;
       let input_id = -1;
       if (currentVideo !== null && currentVideo.transcripts === null) {
         parse_url = currentVideo.video_id;
@@ -167,7 +167,7 @@ function App() {
       unlisten_summary.then((fn) => fn());
       unlisten_state.then((fn) => fn());
     };
-  }, []);
+  }, [setInProgress, addToast, fetchVideos]);
 
   return (
     <>
@@ -176,6 +176,7 @@ function App() {
           <div className="flex justify-between">
             <SettingsModal />
             <button
+              type="button"
               className="p-2 rounded-full transition-colors focus:outline-none"
               onClick={onDeleteVideo}
             >
@@ -197,6 +198,7 @@ function App() {
               placeholder="Enter a video url..."
             />
             <button
+              type="button"
               className="flex items-center space-x-2 px-4 py-2
                           bg-purple-500 text-white rounded-lg
                           hover:bg-purple-600 active:bg-purple-700 disabled:bg-purple-300 disabled:text-gray-500 disabled:cursor-default"
@@ -222,6 +224,7 @@ function App() {
                     <img
                       src={imgUrl}
                       className="mx-auto w-70 h-40 rounded-lg"
+                      alt="thumbnail"
                     />
                   )}
                 </>
@@ -236,6 +239,7 @@ function App() {
                 />
                 <CaptionCheckBox ischecked={auto} handleChecked={setAuto} />
                 <button
+                  type="button"
                   onClick={handle_summary}
                   className="flex items-center space-x-2 px-4 py-2 
                               bg-green-500 text-white rounded-lg 

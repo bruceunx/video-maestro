@@ -44,12 +44,13 @@ const SettingsModal: React.FC = () => {
   //
   React.useEffect(() => {
     setSettings({ ...settings, ...saveSettings });
-  }, [saveSettings]);
+  }, [saveSettings, settings]);
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
       <Dialog.Trigger asChild>
         <button
+          type="button"
           className="p-2 rounded-full transition-colors focus:outline-none"
           onClick={() => setIsOpen(true)}
         >
@@ -244,6 +245,7 @@ const SettingsModal: React.FC = () => {
             <AlertDialog.Root>
               <AlertDialog.Trigger asChild>
                 <button
+                  type="button"
                   className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 
                            transition-colors flex items-center space-x-2"
                 >
@@ -291,6 +293,7 @@ const SettingsModal: React.FC = () => {
                 Cancel
               </Dialog.Close>
               <button
+                type="button"
                 onClick={handleSave}
                 className="px-4 py-2 bg-blue-500 text-white 
                            rounded hover:bg-blue-600 transition-colors"

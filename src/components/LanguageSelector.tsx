@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 import * as Select from "@radix-ui/react-select";
 import { CheckIcon, ChevronDownIcon, Languages } from "lucide-react";
 
