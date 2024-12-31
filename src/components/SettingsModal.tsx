@@ -299,22 +299,6 @@ const SettingsModal: React.FC = () => {
               </button>
             </div>
           </div>
-
-          <div className="flex justify-end space-x-2 mt-6">
-            <Dialog.Close
-              className="px-4 py-2 bg-gray-200 text-gray-700 
-                         rounded hover:bg-gray-300 transition-colors"
-            >
-              Cancel
-            </Dialog.Close>
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-blue-500 text-white 
-                         rounded hover:bg-blue-600 transition-colors"
-            >
-              Save Settings
-            </button>
-          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
