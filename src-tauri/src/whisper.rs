@@ -111,6 +111,7 @@ pub struct Segment {
 //
 //
 //
+
 fn get_system_prompt(language: &str) -> String {
     let prompt = match language {
         "zh" => {
@@ -122,7 +123,7 @@ fn get_system_prompt(language: &str) -> String {
             指导原则：
             - 根据主题或内容的变化将字幕分组为章节。
             - 使用文本中的逻辑过渡点识别新章节的开始位置。
-            - 总结应为3-5句话，概括关键内容, 不要分段, 不要重复。
+            - 总结应为3-5句话，概括关键内容, 不要分段, 不要重复, 不要以`总结:`，`展开:`之类多余的文字开头。
             - 可以适当使用emoji.
             并对根据各章节内容判断是否需要展开介绍，展开介绍在总结结束后。
             指导原则:
@@ -293,7 +294,7 @@ fn get_system_prompt(language: &str) -> String {
         Guiding principles:
         - Group subtitles into chapters based on changes in topic or content.
         - Use logical transition points in the text to identify the start of new chapters.
-        - Summaries should be 3-5 sentences, summarizing the key content.
+        - Summaries should be 3-5 sentences, summarizing the key content, do not repeat or start with redundant words like `summary:`, `detailed:` etc.
         - Use emojis where appropriate.
         Based on each chapter's content, determine if a more detailed explanation is needed. 
         Guiding principles:
