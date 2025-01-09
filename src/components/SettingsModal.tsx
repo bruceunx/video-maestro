@@ -43,8 +43,8 @@ const SettingsModal: React.FC = () => {
   };
   //
   React.useEffect(() => {
-    setSettings({ ...settings, ...saveSettings });
-  }, [saveSettings, settings]);
+    setSettings((preSettings) => ({ ...preSettings, ...saveSettings }));
+  }, [saveSettings]);
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
