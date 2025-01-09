@@ -422,6 +422,10 @@ async fn handle_gemini_api(
         let chunk = chunk.map_err(|e| e.to_string())?;
         let chunk_str = String::from_utf8_lossy(&chunk);
 
+        if !chunk_str.contains("data: ") {
+            return Err(format!("API failed with message {}", chunk_str));
+        }
+
         for line in chunk_str.split("data: ") {
             let line = line.trim();
             if line.is_empty() || line == "[DONE]" {
@@ -477,6 +481,10 @@ async fn handle_open_api(
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| e.to_string())?;
         let chunk_str = String::from_utf8_lossy(&chunk);
+
+        if !chunk_str.contains("data: ") {
+            return Err(format!("API failed with message {}", chunk_str));
+        }
 
         for line in chunk_str.split("data: ") {
             let line = line.trim();
