@@ -9,9 +9,8 @@ serde.workspace = true
 serde_json.workspace = true
 reqwest.workspace = true
 quick-xml = "0.37"
+tokio.workspace = true
 
 
 [dev-dependencies]
 dotenv.workspace = true
-tokio.workspace = true
-
