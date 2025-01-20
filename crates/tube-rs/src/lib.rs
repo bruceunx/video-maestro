@@ -5,7 +5,7 @@ use reqwest::{
     Client, Proxy,
 };
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fs::File, io::Write, path::Path};
+use std::{error::Error, fs::File, io::Write, path::Path, time::Duration};
 
 pub struct YoutubeAudio {
     client: Client,
@@ -260,21 +260,42 @@ impl YoutubeAudio {
             content_check_ok: "true".to_string(),
         };
 
-        let response = self
-            .client
-            .post("https://www.youtube.com/youtubei/v1/player?prettyPrint=false")
-            .headers(headers)
-            .json(&request_body)
-            .send()
-            .await
-            .ok()?;
+        const MAX_RETRIES: u32 = 3;
+        const INITIAL_BACKOFF_MS: u64 = 1000;
 
-        let response_data: ResponseBody = match response.json().await {
-            Ok(value) => value,
-            Err(e) => {
-                eprintln!("{}", e);
-                return None;
+        let mut attempt = 0;
+        let response_data: ResponseBody = loop {
+            attempt += 1;
+
+            match self
+                .client
+                .post("https://www.youtube.com/youtubei/v1/player?prettyPrint=false")
+                .headers(headers.clone())
+                .json(&request_body)
+                .send()
+                .await
+            {
+                Ok(response) => match response.json().await {
+                    Ok(data) => break data,
+                    Err(e) => {
+                        eprintln!("Faled to parse the info from response {e}");
+
+                        if attempt >= MAX_RETRIES {
+                            return None;
+                        }
+                    }
+                },
+                Err(e) => {
+                    eprintln!("Failed to get response from youtube {e}");
+                    if attempt >= MAX_RETRIES {
+                        return None;
+                    }
+                }
             }
+
+            let backoff_duration =
+                Duration::from_millis(INITIAL_BACKOFF_MS * 2u64.pow(attempt - 1));
+            tokio::time::sleep(backoff_duration).await;
         };
 
         let mut all_formats = Vec::new();
@@ -362,22 +383,48 @@ impl YoutubeAudio {
         file_size: u64,
         file_path: &Path,
     ) -> Result<(), Box<dyn Error>> {
+        const MAX_RETRIES: u32 = 3;
+        const INITIAL_BACKOFF_MS: u64 = 1000;
         let mut headers = HeaderMap::new();
         headers.insert(USER_AGENT, HeaderValue::from_static("Mozilla/5.0"));
         headers.insert(ACCEPT_LANGUAGE, HeaderValue::from_static("en-us,en"));
         let mut file = File::create(file_path)?;
         let mut downloaded = 0;
         let default_range_size = 1024 * 1024 * 9;
+        let mut attempt = 0;
         while downloaded < file_size {
             let stop_pos = (downloaded + default_range_size).min(file_size) - 1;
-            let chunk_reponse = self
-                .client
-                .get(format!("{}?range={}-{}", audio_url, downloaded, stop_pos))
-                .headers(headers.clone())
-                .send()
-                .await?;
 
-            let chunk = chunk_reponse.bytes().await?;
+            let chunk = loop {
+                attempt += 1;
+                match self
+                    .client
+                    .get(format!("{}?range={}-{}", audio_url, downloaded, stop_pos))
+                    .headers(headers.clone())
+                    .send()
+                    .await
+                {
+                    Ok(chunk_reponse) => match chunk_reponse.bytes().await {
+                        Ok(data) => break data,
+                        Err(e) => {
+                            eprintln!("Failed to parse the bytes from response {e}");
+                            if attempt >= MAX_RETRIES {
+                                return Err(Box::new(e));
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("Failed to get the response {e}");
+                        if attempt >= MAX_RETRIES {
+                            return Err(Box::new(e));
+                        }
+                    }
+                }
+                let backoff_duration =
+                    Duration::from_millis(INITIAL_BACKOFF_MS * 2u64.pow(attempt - 1));
+                tokio::time::sleep(backoff_duration).await;
+            };
+
             file.write_all(&chunk)?;
             downloaded += chunk.len() as u64;
         }
