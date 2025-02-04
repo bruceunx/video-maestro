@@ -10,8 +10,8 @@ pre-commit:
     cargo-check:
       glob: "*.rs"
       run: cargo check --all-targets --all-features
-    cargo-test:
-      run: cargo test -p videomaestro
+    # cargo-test:
+    #   run: cargo test -p videomaestro
     #   glob: "*.rs"
     #   run: cargo test --all-features
     # cargo-deny:

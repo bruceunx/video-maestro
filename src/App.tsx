@@ -169,6 +169,28 @@ function App() {
     };
   }, [setInProgress, addToast, fetchVideos]);
 
+  React.useEffect(() => {
+    const handleContextMenu = (event: MouseEvent) => {
+      if (event instanceof MouseEvent) {
+        const target = event.target as HTMLElement;
+        // Allow default context menu on input fields and text areas
+        if (
+          target.tagName.toLowerCase() === "input" ||
+          target.tagName.toLowerCase() === "textarea" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+      }
+    };
+
+    document.addEventListener("contextmenu", handleContextMenu);
+
+    return () => {
+      document.removeEventListener("contextmenu", handleContextMenu);
+    };
+  }, []);
+
   return (
     <>
       <div className="flex h-screen w-screen">
