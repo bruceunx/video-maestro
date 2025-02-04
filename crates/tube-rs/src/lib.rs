@@ -7,6 +7,9 @@ use serde::{Deserialize, Serialize};
 use serde_xml_rs::from_str;
 use std::{error::Error, fs::File, io::Write, path::Path, time::Duration};
 
+use dotenv::dotenv;
+use std::env;
+
 pub struct YoutubeAudio {
     client: Client,
 }
@@ -132,6 +135,18 @@ struct StreamingData {
     adaptive_formats: Option<Vec<Format>>,
 }
 
+#[derive(Deserialize, Debug)]
+struct AudioStream {
+    url: String,
+    filesize: u64,
+    mime_type: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct AudioResponsBody {
+    audio_stream: AudioStream,
+}
+
 // export the struct
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -187,6 +202,30 @@ fn preprocess_xml(xml_content: &str) -> String {
         .to_string();
 
     without_declaration
+}
+
+async fn get_auth_audio_link(video_id: &str) -> Option<AudioStream> {
+    dotenv().ok();
+
+    #[derive(Serialize)]
+    struct AuidoRequestBody {
+        url: String,
+    }
+
+    let api_url = env::var("TUBE_API_URL").ok()?;
+    println!("{api_url:?}");
+    let client = Client::new();
+    let body = AuidoRequestBody {
+        url: format!("https://www.youtube.com/watch?v={video_id}"),
+    };
+
+    match client.post(api_url).json(&body).send().await {
+        Ok(res) => match res.json::<AudioResponsBody>().await {
+            Ok(data) => Some(data.audio_stream),
+            Err(_) => None,
+        },
+        Err(_) => None,
+    }
 }
 
 fn parse_xml(xml: &str) -> Vec<SubtitleEntry> {
@@ -359,7 +398,7 @@ impl YoutubeAudio {
             all_formats.extend(adaptive_formats);
         }
 
-        let (mime_type, last_modified, audio_url, audio_filesize) = match all_formats
+        let (mut mime_type, last_modified, mut audio_url, mut audio_filesize) = match all_formats
             .into_iter()
             .filter(|format| format.mime_type.starts_with("audio"))
             .min_by_key(|format| format.bitrate)
@@ -393,7 +432,13 @@ impl YoutubeAudio {
             _ => (None, None),
         };
 
-        println!("{caption_url:?}, {caption_lang:?}");
+        if caption_lang.is_none() {
+            if let Some(audio_data) = get_auth_audio_link(&video_id).await {
+                audio_url = audio_data.url;
+                audio_filesize = audio_data.filesize;
+                mime_type = audio_data.mime_type;
+            }
+        }
 
         let thumbnail_url = format!("https://i.ytimg.com/vi/{}/sddefault.jpg", video_id);
 
@@ -491,6 +536,13 @@ mod tests {
     use dotenv::dotenv;
     use std::path::PathBuf;
     use std::{env, str::FromStr};
+
+    #[tokio::test]
+    async fn check_get_audio_link() {
+        let result = get_auth_audio_link("jcrE1qrm_e8").await;
+        assert!(result.is_some());
+        println!("{result:?}");
+    }
 
     #[tokio::test]
     async fn check_caption_lang_works() {
