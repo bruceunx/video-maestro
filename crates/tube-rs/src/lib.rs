@@ -206,14 +206,12 @@ fn preprocess_xml(xml_content: &str) -> String {
 
 async fn get_auth_audio_link(video_id: &str) -> Option<AudioStream> {
     dotenv().ok();
-
+    let api_url = env::var("TUBE_API_URL").ok()?;
     #[derive(Serialize)]
     struct AuidoRequestBody {
         url: String,
     }
 
-    let api_url = env::var("TUBE_API_URL").ok()?;
-    println!("{api_url:?}");
     let client = Client::new();
     let body = AuidoRequestBody {
         url: format!("https://www.youtube.com/watch?v={video_id}"),
